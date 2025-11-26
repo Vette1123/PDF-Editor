@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PDF Editor
+
+A modern, feature-rich PDF editor built with Next.js 15, React, and TypeScript. Upload PDFs, add text annotations, draw or type signatures, and export your edited documents.
+
+## Features
+
+- 📤 **Easy PDF Upload** - Drag and drop or click to upload PDF files
+- ✍️ **Text Annotations** - Add and edit text anywhere on your PDF with customizable fonts and colors
+- ✒️ **Multiple Signature Styles**:
+  - Draw signatures with mouse or touchscreen
+  - Type signatures with multiple elegant font styles
+  - Upload signature images
+- 🎨 **Intuitive Interface** - Clean, modern UI with easy-to-use tools
+- 🔍 **Zoom & Navigate** - Zoom in/out and navigate through multi-page documents
+- 🖱️ **Drag & Drop** - Move text and signatures anywhere on the page
+- 💾 **Export PDFs** - Download your edited PDFs with all annotations preserved
+
+## Technologies
+
+- **Next.js 15** - Latest React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Modern utility-first styling
+- **pdf-lib** - PDF manipulation and export
+- **react-pdf** - PDF rendering with pdfjs-dist
+- **react-signature-canvas** - Signature drawing canvas
+- **Lucide React** - Beautiful, consistent icons
 
 ## Getting Started
 
-First, run the development server:
+### Installation
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Uploading a PDF
 
-## Learn More
+1. Drag and drop a PDF file into the upload area, or click to browse and select a file
 
-To learn more about Next.js, take a look at the following resources:
+### Adding Text
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Click the **Text tool** (T icon) in the toolbar
+2. Click anywhere on the PDF where you want to add text
+3. Use the **Select tool** to drag and reposition text
+4. Double-click text to edit it
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Adding Signatures
 
-## Deploy on Vercel
+1. Click the **Signature tool** (pen icon) in the toolbar
+2. Choose from three signature methods:
+   - **Draw**: Use your mouse or touchscreen to draw your signature
+   - **Type**: Enter your name and choose from elegant font styles
+   - **Upload**: Upload an existing signature image
+3. Click "Save Signature" to add it to your PDF
+4. Use the **Select tool** to reposition and resize signatures
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Navigating & Viewing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Use the page navigation controls to move between pages
+- Use zoom controls to adjust the view size
+- Select tool allows you to click and drag annotations
+
+### Exporting
+
+- Click **Download PDF** to save your edited document with all annotations
+
+## Project Structure
+
+```
+pdf-editor/
+├── app/
+│   ├── layout.tsx          # Root layout with metadata
+│   ├── page.tsx            # Home page with dynamic PDF editor
+│   └── globals.css         # Global styles
+├── components/
+│   ├── PDFEditor.tsx       # Main editor orchestrator
+│   ├── PDFUpload.tsx       # Drag-and-drop file upload
+│   ├── PDFViewer.tsx       # PDF rendering with annotations
+│   └── SignatureModal.tsx  # Multi-style signature creator
+└── next.config.ts          # Next.js configuration
+```
+
+## License
+
+MIT License - free to use for personal or commercial projects.
