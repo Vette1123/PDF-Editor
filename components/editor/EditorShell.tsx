@@ -12,8 +12,13 @@ import { Inspector } from './Inspector'
 import { PageThumbnails } from './PageThumbnails'
 import { SignatureModal } from './SignatureModal'
 import { CommandPalette, type Command } from './CommandPalette'
+import { RecentDocuments } from './RecentDocuments'
 import type { Tool, Annotation } from '@/lib/editor/types'
 import { useMediaQuery } from '@/lib/use-media-query'
+import { useTheme } from '@/components/ui/ThemeProvider'
+import { SessionWatcher } from '@/components/auth/SessionWatcher'
+import { usePreferences } from '@/lib/editor/use-preferences'
+import { upsertDocument, type SavedDocument } from '@/lib/documents/actions'
 import {
   getCurrentDoc,
   getDoc,
@@ -33,11 +38,25 @@ const isTypingTarget = (el: EventTarget | null): boolean => {
 export default function EditorShell({ authEnabled = false }: { authEnabled?: boolean }) {
   const { state, dispatch, canUndo, canRedo } = useEditor()
   const { toast } = useToast()
+  const { theme, setTheme } = useTheme()
+
+  // Sign-in status (drives DB sync + recent documents). Fed by <SessionWatcher>,
+  // which is rendered only when auth is enabled so its request never fires
+  // on auth-disabled deployments.
+  const [signedIn, setSignedIn] = useState(false)
+  const { defaultFont, defaultZoomRef, rememberFont, rememberZoom } = usePreferences({
+    signedIn,
+    theme,
+    setTheme,
+  })
 
   const [file, setFile] = useState<File | null>(null)
   const arrayBufferRef = useRef<ArrayBuffer | null>(null)
   // Id of the current document in the local IndexedDB store (lib/editor/pdf-store).
   const docIdRef = useRef<string | null>(null)
+  // A recent draft whose PDF bytes aren't on this device — awaiting re-selection.
+  const pendingReopenRef = useRef<{ docId: string; annotations: Annotation[] } | null>(null)
+  const reopenInputRef = useRef<HTMLInputElement | null>(null)
   const [filename, setFilename] = useState('document')
   const [scale, setScale] = useState(1)
   const [numPages, setNumPages] = useState(0)
@@ -84,36 +103,80 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
     [state.annotations, state.selectedId],
   )
 
-  // ---- File upload ----
-  const handleFile = useCallback(
-    async (f: File) => {
-      const buf = await f.arrayBuffer()
-      arrayBufferRef.current = buf
-      const name = f.name.replace(/\.pdf$/i, '') || 'document'
-      setFile(f)
-      setFilename(name)
-      setNumPages(0)
-      // New document: forget the previous page width and re-enable auto-fit so
-      // the first page of the new doc fits the viewport.
+  // Load a document into the editor: builds a File for react-pdf, resets the
+  // view, and restores any annotation draft. Shared by upload, mount-restore,
+  // and reopen-from-recent so the load path is identical in every case.
+  const applyDocument = useCallback(
+    (opts: { docId: string; name: string; bytes: ArrayBuffer; annotations?: Annotation[] }) => {
+      docIdRef.current = opts.docId
+      arrayBufferRef.current = opts.bytes
       pageWidthRef.current = null
       userZoomedRef.current = false
-      dispatch({ type: 'RESET' })
+      setNumPages(0)
+      setFilename(opts.name)
+      setFile(new File([opts.bytes], `${opts.name}.pdf`, { type: 'application/pdf' }))
+      dispatch({
+        type: 'RESET',
+        state: opts.annotations && opts.annotations.length > 0
+          ? { annotations: opts.annotations }
+          : undefined,
+      })
+    },
+    [dispatch],
+  )
 
+  // ---- File upload (and reopen via re-selection) ----
+  const handleFile = useCallback(
+    async (f: File, opts?: { docId?: string; annotations?: Annotation[] }) => {
+      const buf = await f.arrayBuffer()
+      const name = f.name.replace(/\.pdf$/i, '') || 'document'
+      const docId = opts?.docId ?? newDocId()
+      applyDocument({ docId, name, bytes: buf, annotations: opts?.annotations })
       // Persist locally so the document survives a sign-in/sign-out navigation
       // (and full reloads). Bytes stay in the browser — never uploaded.
-      const docId = newDocId()
-      docIdRef.current = docId
       void putDoc({
         docId,
         name,
         bytes: buf.slice(0),
         pageCount: 0,
-        annotations: [],
+        annotations: opts?.annotations ?? [],
         updatedAt: Date.now(),
       })
       void setCurrent(docId)
     },
-    [dispatch],
+    [applyDocument],
+  )
+
+  // Reopen a recent draft. If its PDF bytes are still on this device, open
+  // immediately; otherwise prompt for re-selection and apply the saved draft.
+  const handleOpenRecent = useCallback(
+    async (doc: SavedDocument) => {
+      const annotations = doc.annotations as Annotation[]
+      const local = await getDoc(doc.docId)
+      if (local?.bytes && local.bytes.byteLength > 0) {
+        applyDocument({ docId: doc.docId, name: doc.name, bytes: local.bytes, annotations })
+        void setCurrent(doc.docId)
+        return
+      }
+      pendingReopenRef.current = { docId: doc.docId, annotations }
+      toast({ kind: 'info', message: `Choose “${doc.name}” to reopen it with your saved edits.` })
+      reopenInputRef.current?.click()
+    },
+    [applyDocument, toast],
+  )
+
+  const handleReopenInput = useCallback(
+    (f: File | undefined | null) => {
+      const pending = pendingReopenRef.current
+      pendingReopenRef.current = null
+      if (!f) return
+      if (f.type !== 'application/pdf') {
+        toast({ kind: 'error', message: 'Please choose a PDF file.' })
+        return
+      }
+      void handleFile(f, pending ? { docId: pending.docId, annotations: pending.annotations } : undefined)
+    },
+    [handleFile, toast],
   )
 
   // ---- Restore the last document on mount (after a sign-in/out round trip or
@@ -126,21 +189,17 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
     void (async () => {
       const doc = await getCurrentDoc()
       if (cancelled || !doc) return
-      docIdRef.current = doc.docId
-      arrayBufferRef.current = doc.bytes
-      pageWidthRef.current = null
-      userZoomedRef.current = false
-      const restored = new File([doc.bytes], `${doc.name}.pdf`, { type: 'application/pdf' })
-      setFilename(doc.name)
-      setFile(restored)
-      if (Array.isArray(doc.annotations) && doc.annotations.length > 0) {
-        dispatch({ type: 'RESET', state: { annotations: doc.annotations as Annotation[] } })
-      }
+      applyDocument({
+        docId: doc.docId,
+        name: doc.name,
+        bytes: doc.bytes,
+        annotations: Array.isArray(doc.annotations) ? (doc.annotations as Annotation[]) : undefined,
+      })
     })()
     return () => {
       cancelled = true
     }
-  }, [dispatch])
+  }, [applyDocument])
 
   // Debounced local autosave of the annotation draft for the current document.
   useEffect(() => {
@@ -159,6 +218,25 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
       if (d && d.pageCount !== numPages) await putDoc({ ...d, pageCount: numPages })
     })()
   }, [numPages])
+
+  // Debounced sync of the annotation draft to the account ("recent documents").
+  // Only the annotations + name are sent — never the PDF bytes.
+  useEffect(() => {
+    if (!signedIn) return
+    const id = docIdRef.current
+    if (!id) return
+    const t = setTimeout(
+      () =>
+        void upsertDocument({
+          docId: id,
+          name: filename,
+          annotations: state.annotations as unknown[],
+          pageCount: numPages,
+        }),
+      1500,
+    )
+    return () => clearTimeout(t)
+  }, [signedIn, state.annotations, filename, numPages])
 
   // ---- Export ----
   const handleExport = useCallback(async () => {
@@ -269,19 +347,29 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
   )
 
   // Manual zoom wrapper: marks that the user has taken control so auto-fit on
-  // resize backs off until the next document loads.
-  const handleZoom = useCallback((next: number) => {
-    userZoomedRef.current = true
-    setScale(next)
-  }, [])
+  // resize backs off until the next document loads. Persists as the saved zoom.
+  const handleZoom = useCallback(
+    (next: number) => {
+      userZoomedRef.current = true
+      setScale(next)
+      rememberZoom(next)
+    },
+    [rememberZoom],
+  )
 
-  // First page width arrives (or changes) -> auto fit-to-width once per document.
+  // First page width arrives (or changes). Use the user's saved zoom if they
+  // have one; otherwise auto fit-to-width.
   const handlePageWidth = useCallback(
     (width: number) => {
       pageWidthRef.current = width
-      fitToWidth()
+      const saved = defaultZoomRef.current
+      if (saved && !userZoomedRef.current) {
+        setScale(Math.min(3, Math.max(0.25, saved)))
+      } else {
+        fitToWidth()
+      }
     },
-    [fitToWidth],
+    [fitToWidth, defaultZoomRef],
   )
 
   // Keep the page fit to the viewport on resize/orientation change — until the
@@ -297,14 +385,32 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
   // ---- Empty state ----
   if (!file) {
     return (
-      <div className="grid h-full place-items-center bg-[var(--bg-canvas)]">
-        <UploadDropzone onFile={handleFile} />
+      <div className="h-full overflow-auto bg-[var(--bg-canvas)]">
+        {authEnabled && <SessionWatcher onChange={setSignedIn} />}
+        {/* Hidden input used to re-select a recent file whose bytes aren't local. */}
+        <input
+          ref={reopenInputRef}
+          type="file"
+          accept="application/pdf"
+          aria-hidden="true"
+          tabIndex={-1}
+          className="sr-only"
+          onChange={(e) => {
+            handleReopenInput(e.target.files?.[0])
+            e.target.value = ''
+          }}
+        />
+        <div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
+          <UploadDropzone onFile={(f) => void handleFile(f)} />
+          {signedIn && <RecentDocuments onOpen={(d) => void handleOpenRecent(d)} />}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex h-full flex-col bg-[var(--bg-canvas)]">
+      {authEnabled && <SessionWatcher onChange={setSignedIn} />}
       <TopBar
         filename={filename}
         onRename={setFilename}
@@ -355,12 +461,17 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
             dispatch={dispatch}
             onNumPages={setNumPages}
             onPageWidth={handlePageWidth}
+            defaultFont={defaultFont ?? undefined}
           />
         </main>
 
         <Inspector
           selected={selected}
-          onUpdate={(id, patch) => dispatch({ type: 'UPDATE', id, patch })}
+          onUpdate={(id, patch) => {
+            // Treat a font change as the new default for future text.
+            if (patch.fontFamily) rememberFont(patch.fontFamily)
+            dispatch({ type: 'UPDATE', id, patch })
+          }}
           onClose={() => dispatch({ type: 'SELECT', id: null })}
         />
       </div>

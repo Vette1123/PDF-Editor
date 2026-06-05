@@ -4,7 +4,7 @@ import '@/lib/pdf/worker'
 import { useCallback, useRef, useState } from 'react'
 import { Document, Page } from 'react-pdf'
 import { Loader2, FileWarning } from 'lucide-react'
-import type { Action, Annotation, Tool } from '@/lib/editor/types'
+import type { Action, Annotation, Tool, FontFamily } from '@/lib/editor/types'
 import { UI_FONTS } from '@/lib/editor/fonts'
 import { AnnotationLayer } from './AnnotationLayer'
 
@@ -19,6 +19,8 @@ export interface DocumentCanvasProps {
   onNumPages: (n: number) => void
   /** Reports the first page's intrinsic (scale-1) width in CSS px, for fit-to-width. */
   onPageWidth?: (width: number) => void
+  /** Default font for newly created text (the user's last-used / saved default). */
+  defaultFont?: FontFamily
 }
 
 const fontCss = (family: string) =>
@@ -33,6 +35,7 @@ export function DocumentCanvas({
   dispatch,
   onNumPages,
   onPageWidth,
+  defaultFont,
 }: DocumentCanvasProps) {
   const [numPages, setNumPages] = useState(0)
   const [loadError, setLoadError] = useState(false)
@@ -67,7 +70,7 @@ export function DocumentCanvas({
     const rect = el.getBoundingClientRect()
     const x = (e.clientX - rect.left) / scale
     const y = (e.clientY - rect.top) / scale
-    dispatch({ type: 'ADD_TEXT', x, y, page: pageNumber })
+    dispatch({ type: 'ADD_TEXT', x, y, page: pageNumber, fontFamily: defaultFont })
     setHover(null)
   }
 
