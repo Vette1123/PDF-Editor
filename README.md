@@ -8,7 +8,15 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+### 🚀 [Try Signet live →](https://pdf-editor-beige.vercel.app)
+
+_No sign-up. No upload. Free forever — no trial, paywall, or watermark._
+
 Open a PDF, add text, draw or type a signature, and export the edited document — all processed locally on your device. Your files never leave your browser.
+
+Signet is a free, open-source alternative to online PDF tools like Adobe Acrobat Fill & Sign, DocuSign, Smallpdf, and iLovePDF — with one key difference: there is **no server**. Edit and sign PDFs online without uploading them anywhere.
+
+⭐ **If Signet is useful to you, please [star the repo](https://github.com/Vette1123/PDF-Editor/stargazers)** — it helps others find it.
 
 ## ✨ Features
 
