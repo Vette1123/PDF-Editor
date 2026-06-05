@@ -6,7 +6,7 @@ export function FAQ() {
     <section id="faq" className="scroll-mt-20 border-t border-[var(--border)] bg-[var(--bg-panel)]">
       <div className="mx-auto max-w-3xl px-5 py-20 sm:px-8 sm:py-28">
         <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--accent)]">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--accent-text)]">
             Questions
           </p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-[-0.02em] text-[var(--text)] sm:text-4xl">

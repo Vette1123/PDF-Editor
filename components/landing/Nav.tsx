@@ -40,7 +40,7 @@ export function Nav({ authEnabled = false }: { authEnabled?: boolean }) {
           {authEnabled && <AccountMenu />}
           <Link
             href="/editor"
-            className="group inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3.5 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)] active:scale-[0.98]"
+            className="group inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--btn-accent)] px-3.5 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)] active:scale-[0.98]"
           >
             Open editor
             <ArrowUpRight

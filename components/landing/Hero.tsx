@@ -60,7 +60,7 @@ export function Hero() {
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/editor"
-            className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-7 text-[15px] font-medium text-white shadow-[var(--shadow)] transition-[background-color,transform] hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)] active:scale-[0.98] sm:w-auto"
+            className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--btn-accent)] px-7 text-[15px] font-medium text-white shadow-[var(--shadow)] transition-[background-color,transform] hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)] active:scale-[0.98] sm:w-auto"
           >
             Open the editor
             <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />

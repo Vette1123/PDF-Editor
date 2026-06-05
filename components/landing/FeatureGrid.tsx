@@ -46,7 +46,7 @@ export function FeatureGrid() {
     <section id="features" className="scroll-mt-20 border-t border-[var(--border)]">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--accent)]">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--accent-text)]">
             Capabilities
           </p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-[-0.02em] text-[var(--text)] sm:text-4xl">

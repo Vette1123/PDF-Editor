@@ -10,7 +10,7 @@ export function AccountsDisabledNotice() {
     >
       <Link
         href="/editor"
-        className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] active:scale-[0.98]"
+        className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--btn-accent)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] active:scale-[0.98]"
       >
         Open the editor
       </Link>

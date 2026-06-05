@@ -58,7 +58,7 @@ export function PrivacyCallout() {
 
           <Link
             href="/editor"
-            className="mt-10 inline-flex h-11 items-center justify-center rounded-xl bg-[var(--accent)] px-6 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-panel)] active:scale-[0.98]"
+            className="mt-10 inline-flex h-11 items-center justify-center rounded-xl bg-[var(--btn-accent)] px-6 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-panel)] active:scale-[0.98]"
           >
             Try it now — no sign-up
           </Link>

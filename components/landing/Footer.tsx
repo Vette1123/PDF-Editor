@@ -38,7 +38,7 @@ export function Footer() {
             </a>
             <Link
               href="/editor"
-              className="inline-flex items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="inline-flex items-center rounded-lg bg-[var(--btn-accent)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             >
               Open editor
             </Link>

@@ -6,7 +6,7 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
         <h1 className="text-2xl font-semibold text-[var(--text)]">Something went wrong</h1>
         <p className="mt-2 text-[var(--text-muted)]">An unexpected error occurred. Your files were never uploaded.</p>
         <button onClick={reset}
-          className="mt-6 h-10 px-4 rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]">
+          className="mt-6 h-10 px-4 rounded-lg bg-[var(--btn-accent)] text-white hover:bg-[var(--btn-accent-hover)]">
           Try again
         </button>
       </div>

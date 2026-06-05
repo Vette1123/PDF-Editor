@@ -24,7 +24,7 @@ export function HowItWorks() {
     <section id="how" className="scroll-mt-20 border-t border-[var(--border)] bg-[var(--bg-panel)]">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--accent)]">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--accent-text)]">
             Workflow
           </p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-[-0.02em] text-[var(--text)] sm:text-4xl">
@@ -43,7 +43,7 @@ export function HowItWorks() {
               <div className="flex items-center gap-4 sm:flex-col sm:items-start">
                 <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-canvas)] text-[var(--accent)] shadow-[var(--shadow)]">
                   <Icon size={22} strokeWidth={1.75} />
-                  <span className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--accent)] text-xs font-semibold text-white tabular-nums">
+                  <span className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--btn-accent)] text-xs font-semibold text-white tabular-nums">
                     {i + 1}
                   </span>
                 </span>
