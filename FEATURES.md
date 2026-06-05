@@ -138,7 +138,7 @@ Three professional signature methods:
 
 ### Frontend Architecture
 
-- **Next.js 15**: Latest React framework
+- **Next.js 16**: Latest React framework
 - **TypeScript**: Full type safety
 - **Client-Side Rendering**: Dynamic import for PDF components
 - **React Hooks**: useCallback, useState for optimized state
