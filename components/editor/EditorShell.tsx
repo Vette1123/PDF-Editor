@@ -36,6 +36,29 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
   const [thumbsCollapsed, setThumbsCollapsed] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
+  // Fit-to-width plumbing: the canvas <main> gives us the available width; the
+  // first PDF page reports its intrinsic (scale-1) width. fit = container / page.
+  const mainRef = useRef<HTMLElement | null>(null)
+  const pageWidthRef = useRef<number | null>(null)
+  // Once the user manually zooms we stop auto-fitting on resize so we don't
+  // fight them; the next document load resets this.
+  const userZoomedRef = useRef(false)
+
+  // Horizontal padding inside the canvas (px-6 => 24px each side).
+  const CANVAS_PADDING = 48
+
+  const fitToWidth = useCallback(() => {
+    const el = mainRef.current
+    const pageWidth = pageWidthRef.current
+    if (!el || !pageWidth) return
+    const avail = el.clientWidth - CANVAS_PADDING
+    if (avail <= 0) return
+    // Clamp to the same bounds the zoom controls use; cap at 1 so we never blow
+    // a small page up past 100% just because the screen is wide.
+    const next = Math.min(1, Math.max(0.25, avail / pageWidth))
+    setScale(next)
+  }, [])
+
   // Below lg the thumbnails default to collapsed so they never steal canvas
   // width; on desktop they stay expanded. Follows the breakpoint until the user
   // overrides it manually for the current width.
@@ -59,6 +82,10 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
       setFile(f)
       setFilename(f.name.replace(/\.pdf$/i, '') || 'document')
       setNumPages(0)
+      // New document: forget the previous page width and re-enable auto-fit so
+      // the first page of the new doc fits the viewport.
+      pageWidthRef.current = null
+      userZoomedRef.current = false
       dispatch({ type: 'RESET' })
     },
     [dispatch],
@@ -151,14 +178,52 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
       { id: 'undo', label: 'Undo', hint: '⌘Z', run: () => dispatch({ type: 'UNDO' }) },
       { id: 'redo', label: 'Redo', hint: '⌘⇧Z', run: () => dispatch({ type: 'REDO' }) },
       { id: 'export', label: 'Export PDF', run: () => void handleExport() },
-      { id: 'zoom-in', label: 'Zoom in', run: () => setScale((s) => Math.min(3, s + 0.1)) },
-      { id: 'zoom-out', label: 'Zoom out', run: () => setScale((s) => Math.max(0.25, s - 0.1)) },
-      { id: 'fit', label: 'Fit width', run: () => setScale(1) },
+      {
+        id: 'zoom-in',
+        label: 'Zoom in',
+        run: () => {
+          userZoomedRef.current = true
+          setScale((s) => Math.min(3, s + 0.1))
+        },
+      },
+      {
+        id: 'zoom-out',
+        label: 'Zoom out',
+        run: () => {
+          userZoomedRef.current = true
+          setScale((s) => Math.max(0.25, s - 0.1))
+        },
+      },
+      { id: 'fit', label: 'Fit width', run: () => fitToWidth() },
     ],
-    [setTool, dispatch, handleExport],
+    [setTool, dispatch, handleExport, fitToWidth],
   )
 
-  const onFit = useCallback(() => setScale(1), [])
+  // Manual zoom wrapper: marks that the user has taken control so auto-fit on
+  // resize backs off until the next document loads.
+  const handleZoom = useCallback((next: number) => {
+    userZoomedRef.current = true
+    setScale(next)
+  }, [])
+
+  // First page width arrives (or changes) -> auto fit-to-width once per document.
+  const handlePageWidth = useCallback(
+    (width: number) => {
+      pageWidthRef.current = width
+      fitToWidth()
+    },
+    [fitToWidth],
+  )
+
+  // Keep the page fit to the viewport on resize/orientation change — until the
+  // user manually zooms.
+  useEffect(() => {
+    const onResize = () => {
+      if (!userZoomedRef.current) fitToWidth()
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [fitToWidth])
 
   // ---- Empty state ----
   if (!file) {
@@ -178,8 +243,8 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
         numPages={numPages}
         onPage={(p) => dispatch({ type: 'SET_PAGE', page: p })}
         scale={scale}
-        onZoom={setScale}
-        onFit={onFit}
+        onZoom={handleZoom}
+        onFit={fitToWidth}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={() => dispatch({ type: 'UNDO' })}
@@ -207,7 +272,10 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
 
         {/* Bottom padding on mobile clears the fixed bottom toolbar so canvas
             content (and its last page) is never hidden behind it. */}
-        <main className="min-w-0 flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <main
+          ref={mainRef}
+          className="min-w-0 flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0"
+        >
           <DocumentCanvas
             file={file}
             scale={scale}
@@ -217,6 +285,7 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
             currentPage={state.currentPage}
             dispatch={dispatch}
             onNumPages={setNumPages}
+            onPageWidth={handlePageWidth}
           />
         </main>
 

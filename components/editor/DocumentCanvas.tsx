@@ -17,6 +17,8 @@ export interface DocumentCanvasProps {
   currentPage: number
   dispatch: (action: Action | { type: 'UNDO' } | { type: 'REDO' }) => void
   onNumPages: (n: number) => void
+  /** Reports the first page's intrinsic (scale-1) width in CSS px, for fit-to-width. */
+  onPageWidth?: (width: number) => void
 }
 
 const fontCss = (family: string) =>
@@ -30,6 +32,7 @@ export function DocumentCanvas({
   selectedId,
   dispatch,
   onNumPages,
+  onPageWidth,
 }: DocumentCanvasProps) {
   const [numPages, setNumPages] = useState(0)
   const [loadError, setLoadError] = useState(false)
@@ -141,6 +144,11 @@ export function DocumentCanvas({
                     scale={scale}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
+                    onLoadSuccess={
+                      pageNumber === 1 && onPageWidth
+                        ? (p) => onPageWidth(p.originalWidth)
+                        : undefined
+                    }
                   />
 
                   {/* Caret preview when text tool active */}
