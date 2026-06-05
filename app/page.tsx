@@ -1,20 +1,7 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import dynamic from 'next/dynamic'
-
-const PDFEditor = dynamic(() => import('@/components/PDFEditor'), {
-  ssr: false,
-  loading: () => (
-    <div className='min-h-screen flex items-center justify-center'>
-      <div className='text-xl text-slate-600'>Loading PDF Editor...</div>
-    </div>
-  ),
-})
-
+// Interim: the marketing landing page is built in Phase 4 (Task 4.3).
+// Until then, send visitors straight to the editor.
 export default function Home() {
-  return (
-    <main className='min-h-screen bg-linear-to-br from-slate-50 to-slate-100'>
-      <PDFEditor />
-    </main>
-  )
+  redirect('/editor')
 }
