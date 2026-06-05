@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Github } from 'lucide-react'
+import { GithubIcon } from '@/components/ui/GithubIcon'
 import { Logo } from '@/components/ui/Logo'
 import { site } from '@/lib/seo/site'
 
@@ -33,7 +33,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)] hover:bg-[var(--bg-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             >
-              <Github size={16} />
+              <GithubIcon size={16} />
               GitHub
             </a>
             <Link

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, Github } from 'lucide-react'
+import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { GithubIcon } from '@/components/ui/GithubIcon'
 import { site } from '@/lib/seo/site'
 
 export function Hero() {
@@ -38,7 +39,7 @@ export function Hero() {
           </span>
           <span className="flex items-center gap-1">
             Star it on GitHub
-            <Github size={13} className="opacity-70" />
+            <GithubIcon size={13} className="opacity-70" />
           </span>
         </a>
 
