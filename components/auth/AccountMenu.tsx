@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { Settings } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
 import { SignOutButton } from './SignOutButton'
 
@@ -73,6 +74,15 @@ export function AccountMenu() {
             <p className="truncate text-xs text-[var(--text-muted)]">{email}</p>
           </div>
           <div className="my-1 h-px bg-[var(--border)]" />
+          <Link
+            href="/account"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          >
+            <Settings size={16} />
+            Profile &amp; settings
+          </Link>
           <SignOutButton />
         </div>
       )}

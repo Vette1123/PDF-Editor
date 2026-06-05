@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useEditor } from '@/lib/editor/use-editor'
 import { exportPdf, downloadBytes } from '@/lib/editor/export'
 import { useToast } from '@/components/ui/Toast'
@@ -16,6 +17,9 @@ import { RecentDocuments } from './RecentDocuments'
 import type { Tool, Annotation } from '@/lib/editor/types'
 import { useMediaQuery } from '@/lib/use-media-query'
 import { useTheme } from '@/components/ui/ThemeProvider'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { Logo } from '@/components/ui/Logo'
+import { AccountMenu } from '@/components/auth/AccountMenu'
 import { SessionWatcher } from '@/components/auth/SessionWatcher'
 import { usePreferences } from '@/lib/editor/use-preferences'
 import { upsertDocument, type SavedDocument } from '@/lib/documents/actions'
@@ -385,8 +389,22 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
   // ---- Empty state ----
   if (!file) {
     return (
-      <div className="h-full overflow-auto bg-[var(--bg-canvas)]">
+      <div className="flex h-full flex-col bg-[var(--bg-canvas)]">
         {authEnabled && <SessionWatcher onChange={setSignedIn} />}
+        {/* Header so signed-in users can reach their account / theme from here. */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-panel)] px-4">
+          <Link
+            href="/"
+            aria-label="Signet home"
+            className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          >
+            <Logo />
+          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {authEnabled && <AccountMenu />}
+          </div>
+        </header>
         {/* Hidden input used to re-select a recent file whose bytes aren't local. */}
         <input
           ref={reopenInputRef}
@@ -400,7 +418,7 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
             e.target.value = ''
           }}
         />
-        <div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-4 py-12">
           <UploadDropzone onFile={(f) => void handleFile(f)} />
           {signedIn && <RecentDocuments onOpen={(d) => void handleOpenRecent(d)} />}
         </div>
