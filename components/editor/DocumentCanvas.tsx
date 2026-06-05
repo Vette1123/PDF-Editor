@@ -55,7 +55,10 @@ export function DocumentCanvas({
 
   const handlePageClick = (e: React.MouseEvent, pageNumber: number) => {
     if (tool !== 'text') return
-    if (e.target !== e.currentTarget) return // ignore clicks on existing annotations
+    // Ignore clicks that land on an existing annotation box (the only
+    // role="button" descendants of the page); allow clicks anywhere else on the
+    // page, including the rendered PDF <canvas> which fills the wrapper.
+    if ((e.target as HTMLElement).closest('[role="button"]')) return
     const el = pageRefs.current[pageNumber - 1]
     if (!el) return
     const rect = el.getBoundingClientRect()
