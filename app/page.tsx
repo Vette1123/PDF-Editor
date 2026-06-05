@@ -6,6 +6,7 @@ import { HowItWorks } from '@/components/landing/HowItWorks'
 import { PrivacyCallout } from '@/components/landing/PrivacyCallout'
 import { FAQ } from '@/components/landing/FAQ'
 import { Footer } from '@/components/landing/Footer'
+import { Reveal } from '@/components/ui/Reveal'
 import { FAQ_ITEMS } from '@/components/landing/faq-data'
 import { softwareAppLd, faqLd } from '@/lib/seo/structured-data'
 import { authConfigured } from '@/lib/env'
@@ -22,10 +23,10 @@ export default function HomePage() {
       <Nav authEnabled={authConfigured} />
       <main>
         <Hero />
-        <FeatureGrid />
-        <HowItWorks />
-        <PrivacyCallout />
-        <FAQ />
+        <Reveal><FeatureGrid /></Reveal>
+        <Reveal><HowItWorks /></Reveal>
+        <Reveal><PrivacyCallout /></Reveal>
+        <Reveal><FAQ /></Reveal>
       </main>
       <Footer />
     </>
