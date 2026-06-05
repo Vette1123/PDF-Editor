@@ -97,6 +97,13 @@ body {
   to { transform: translateY(0); opacity: 1 }
 }
 
+/* Animated gradient sweep for the hero wordmark. */
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+}
+.animate-gradient-x { animation: gradient-x 6s ease infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }

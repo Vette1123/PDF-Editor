@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Type,
   PenTool,
@@ -7,6 +9,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
+import { motion, type Variants } from 'motion/react'
 
 const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
@@ -41,6 +44,15 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   },
 ]
 
+const grid: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+}
+const card: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+}
+
 export function FeatureGrid() {
   return (
     <section id="features" className="scroll-mt-20 border-t border-[var(--border)]">
@@ -57,24 +69,35 @@ export function FeatureGrid() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div
+          className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-3"
+          variants={grid}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-60px' }}
+        >
           {FEATURES.map(({ icon: Icon, title, body }) => (
-            <div
+            <motion.div
               key={title}
+              variants={card}
               className="group relative bg-[var(--bg-panel)] p-7 transition-colors hover:bg-[var(--bg-elevated)]"
             >
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-0 transition-opacity group-hover:opacity-100"
               />
-              <span className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--border-strong)] bg-[var(--bg-canvas)] text-[var(--accent)] transition-colors group-hover:border-[var(--accent)]">
+              <motion.span
+                className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--border-strong)] bg-[var(--bg-canvas)] text-[var(--accent)] transition-colors group-hover:border-[var(--accent)]"
+                whileHover={{ rotate: -8, scale: 1.08 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              >
                 <Icon size={20} strokeWidth={1.75} />
-              </span>
+              </motion.span>
               <h3 className="mt-5 text-[17px] font-medium text-[var(--text)]">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{body}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

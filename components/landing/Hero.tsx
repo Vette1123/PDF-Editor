@@ -1,9 +1,26 @@
+'use client'
+
 import Link from 'next/link'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { GithubIcon } from '@/components/ui/GithubIcon'
 import { site } from '@/lib/seo/site'
 
+const container: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+}
+const item: Variants = {
+  hidden: { opacity: 0, y: 22 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+}
+
 export function Hero() {
+  const reduce = useReducedMotion()
+  // Reduced motion: skip the looping aurora; keep a static halo.
+  const float = (extra: Record<string, number[]>) =>
+    reduce ? undefined : { ...extra }
+
   return (
     <section className="relative isolate overflow-hidden">
       {/* Blueprint grid backdrop */}
@@ -16,15 +33,32 @@ export function Hero() {
           backgroundSize: '64px 64px',
         }}
       />
-      {/* Accent halo */}
-      <div
+      {/* Living aurora — two slow-drifting accent blooms. */}
+      <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-[-12rem] -z-10 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full opacity-30 blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-[-12rem] -z-10 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full blur-[120px]"
         style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 65%)' }}
+        initial={{ opacity: 0.3 }}
+        animate={float({ opacity: [0.22, 0.4, 0.22], scale: [1, 1.12, 1], x: [-20, 24, -20] })}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-[8%] top-[2rem] -z-10 h-[22rem] w-[22rem] rounded-full blur-[110px]"
+        style={{ background: 'radial-gradient(circle, var(--accent-hover) 0%, transparent 70%)' }}
+        initial={{ opacity: 0.18 }}
+        animate={float({ opacity: [0.12, 0.26, 0.12], y: [0, 28, 0] })}
+        transition={{ duration: 17, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
       />
 
-      <div className="mx-auto max-w-6xl px-5 pb-24 pt-20 text-center sm:px-8 sm:pt-28 lg:pt-36">
-        <a
+      <motion.div
+        className="mx-auto max-w-6xl px-5 pb-24 pt-20 text-center sm:px-8 sm:pt-28 lg:pt-36"
+        variants={container}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.a
+          variants={item}
           href={site.repo}
           target="_blank"
           rel="noopener noreferrer"
@@ -41,23 +75,32 @@ export function Hero() {
             Star it on GitHub
             <GithubIcon size={13} className="opacity-70" />
           </span>
-        </a>
+        </motion.a>
 
-        <h1 className="mx-auto mt-7 max-w-4xl text-balance text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.03em] text-[var(--text)] sm:text-6xl lg:text-7xl">
+        <motion.h1
+          variants={item}
+          className="mx-auto mt-7 max-w-4xl text-balance text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.03em] text-[var(--text)] sm:text-6xl lg:text-7xl"
+        >
           Edit &amp; sign PDFs,{' '}
           <span className="relative whitespace-nowrap">
-            <span className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] bg-clip-text text-transparent">
+            <span className="animate-gradient-x bg-[linear-gradient(110deg,var(--accent),var(--accent-hover),var(--accent))] bg-[length:200%_auto] bg-clip-text text-transparent">
               free and private
             </span>
           </span>
-        </h1>
+        </motion.h1>
 
-        <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-[var(--text-muted)] sm:text-lg">
+        <motion.p
+          variants={item}
+          className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-[var(--text-muted)] sm:text-lg"
+        >
           Add text, draw or type signatures, and export — entirely in your browser.
           No uploads. No accounts. Your files never touch a server.
-        </p>
+        </motion.p>
 
-        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <motion.div
+          variants={item}
+          className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
+        >
           <Link
             href="/editor"
             className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--btn-accent)] px-7 text-[15px] font-medium text-white shadow-[var(--shadow)] transition-[background-color,transform] hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)] active:scale-[0.98] sm:w-auto"
@@ -71,17 +114,20 @@ export function Hero() {
           >
             See how it works
           </a>
-        </div>
+        </motion.div>
 
-        <p className="mt-7 inline-flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        <motion.p
+          variants={item}
+          className="mt-7 inline-flex items-center gap-2 text-sm text-[var(--text-muted)]"
+        >
           <ShieldCheck size={15} className="text-[var(--success)]" />
           No upload
           <span className="text-[var(--border-strong)]">·</span>
           No account
           <span className="text-[var(--border-strong)]">·</span>
           100% in your browser
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </section>
   )
 }

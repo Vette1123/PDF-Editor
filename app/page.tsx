@@ -23,8 +23,8 @@ export default function HomePage() {
       <Nav authEnabled={authConfigured} />
       <main>
         <Hero />
-        <Reveal><FeatureGrid /></Reveal>
-        <Reveal><HowItWorks /></Reveal>
+        <FeatureGrid />
+        <HowItWorks />
         <Reveal><PrivacyCallout /></Reveal>
         <Reveal><FAQ /></Reveal>
       </main>
