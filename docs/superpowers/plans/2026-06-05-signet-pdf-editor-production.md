@@ -241,9 +241,16 @@ export const site = {
     'PDF editor', 'edit PDF online', 'sign PDF free', 'add text to PDF',
     'PDF signature', 'browser PDF editor', 'no upload PDF editor', 'private PDF editor',
   ],
-  author: 'Signet',
+  author: 'Mohamed Gado',
+  authorUrl: 'https://mohamedgado.com',
+  repo: 'https://github.com/Vette1123/PDF-Editor',
 } as const
 ```
+
+> **Author/portfolio:** `mohamedgado.com` must appear (a) on the OG image (Task 4.4) and (b) as a
+> visible credit in the site `Footer` (Task 4.2: "Crafted by Mohamed Gado" → `authorUrl`,
+> `rel="author"`). Also set `metadata.authors[].url` to `authorUrl` and add a `creator` field in
+> Task 5.1.
 
 - [ ] **Step 2: Create `lib/pdf/worker.ts`** (resolve worker from installed pdfjs version, no CDN)
 
@@ -1495,7 +1502,8 @@ git commit -m "feat: JSON-LD structured data builders with tests"
 - `HowItWorks` — 3 steps (Upload → Edit & sign → Export).
 - `PrivacyCallout` — emphasis band: files never leave the device.
 - `FAQ` — accordion (details/summary, no JS needed) from `FAQ_ITEMS`.
-- `Footer` — Logo, copyright, GitHub link, theme note.
+- `Footer` — Logo, copyright, GitHub link (`site.repo`), and a visible **"Crafted by Mohamed Gado"**
+  credit linking to `site.authorUrl` (`https://mohamedgado.com`, `rel="author"`, opens new tab).
 
 - [ ] **Step 1: Implement `faq-data.ts` + all 7 components.**
 - [ ] **Step 2: Typecheck** — expect 0
@@ -1618,8 +1626,17 @@ export default function Og() {
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: 80, background: '#0a0a0b', color: '#fafafa',
       }}>
-        <div style={{ fontSize: 64, fontWeight: 700 }}>{site.name}</div>
-        <div style={{ fontSize: 32, color: '#a1a1aa', marginTop: 16 }}>{site.tagline}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 999, border: '4px solid #6366f1',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 22, height: 22, borderRadius: 999, background: '#6366f1' }} />
+          </div>
+          <div style={{ fontSize: 64, fontWeight: 700 }}>{site.name}</div>
+        </div>
+        <div style={{ fontSize: 34, color: '#a1a1aa', marginTop: 24 }}>{site.tagline}</div>
+        <div style={{ fontSize: 22, color: '#71717a', marginTop: 'auto' }}>
+          {site.authorUrl.replace('https://', '')}
+        </div>
       </div>
     ),
     { ...size },
@@ -1627,13 +1644,27 @@ export default function Og() {
 }
 ```
 
-- [ ] **Step 5: Add `public/icon.svg`** (Signet seal mark — reuse Logo SVG).
+- [ ] **Step 5: Add favicon + manifest icon.** Create `app/icon.svg` (App Router auto-favicon —
+  the Signet seal mark) AND `public/icon.svg` (referenced by manifest). Also create
+  `app/apple-icon.png` is optional; SVG favicon is sufficient. Delete the stock `app/favicon.ico`
+  (replaced by `app/icon.svg`).
+
+`app/icon.svg` / `public/icon.svg` content:
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="7" fill="#0a0a0b"/>
+  <circle cx="16" cy="16" r="9.5" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <circle cx="16" cy="16" r="4" fill="#6366f1"/>
+</svg>
+```
+
 - [ ] **Step 6: Build & commit**
 
 Run: `npm run build` (expect success)
 ```bash
-git add app/robots.ts app/sitemap.ts app/manifest.ts app/opengraph-image.tsx public/icon.svg
-git commit -m "feat: robots, sitemap, manifest, OG image"
+git rm app/favicon.ico
+git add app/robots.ts app/sitemap.ts app/manifest.ts app/opengraph-image.tsx app/icon.svg public/icon.svg
+git commit -m "feat: robots, sitemap, manifest, OG image (with portfolio), favicon"
 ```
 
 ---
@@ -1667,7 +1698,9 @@ export const metadata: Metadata = {
   description: site.description,
   keywords: [...site.keywords],
   applicationName: site.name,
-  authors: [{ name: site.author }],
+  authors: [{ name: site.author, url: site.authorUrl }],
+  creator: site.author,
+  publisher: site.author,
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website', url: site.url, siteName: site.name,
