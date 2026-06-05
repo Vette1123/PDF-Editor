@@ -8,6 +8,20 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { useSession } from '@/lib/auth-client'
+
+/**
+ * Calls `useSession()` (which hits /api/auth/get-session) and reports whether a
+ * user is signed in. Rendered ONLY when auth is enabled, so the request never
+ * fires on auth-disabled deployments. Renders nothing itself.
+ */
+function SessionWatcher({ onChange }: { onChange: (signedIn: boolean) => void }) {
+  const { data } = useSession()
+  const signedIn = Boolean(data)
+  useEffect(() => {
+    onChange(signedIn)
+  }, [signedIn, onChange])
+  return null
+}
 import {
   listSignatures,
   saveSignature,
@@ -56,10 +70,11 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
   const [prevOpen, setPrevOpen] = useState(open)
   const { toast } = useToast()
 
-  // The session hook is always called (rules of hooks); we only act on its
-  // result when `authEnabled` so auth-disabled deployments never use it.
-  const { data: sessionData } = useSession()
-  const signedIn = authEnabled && Boolean(sessionData)
+  // `useSession` issues a network request to /api/auth/get-session, which 503s
+  // on auth-disabled deployments. To avoid firing it at all when auth is off,
+  // the hook lives in <SessionWatcher>, rendered only when `authEnabled`. It
+  // reports sign-in status up via state; when auth is disabled we stay false.
+  const [signedIn, setSignedIn] = useState(false)
 
   // Account-saving state.
   const [saveName, setSaveName] = useState('')
@@ -234,6 +249,7 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
 
   return (
     <Dialog open={open} onClose={onClose} label="Add signature">
+      {authEnabled && <SessionWatcher onChange={setSignedIn} />}
       <div className="flex max-h-[90vh] flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
@@ -436,7 +452,7 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
                   </p>
                   <Link
                     href="/login"
-                    className="inline-flex h-9 items-center rounded-lg bg-[var(--accent)] px-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="inline-flex h-9 items-center rounded-lg bg-[var(--btn-accent)] px-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--btn-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Sign in
                   </Link>
