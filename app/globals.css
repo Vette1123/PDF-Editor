@@ -68,6 +68,21 @@
 
 * { border-color: var(--border); }
 
+/* Tailwind v4 dropped the default `cursor: pointer` on interactive elements.
+   Restore it for every call-to-action so buttons/links/summaries feel clickable. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+label[for],
+a[href] {
+  cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"],
+:disabled {
+  cursor: not-allowed;
+}
+
 body {
   background: var(--bg-canvas);
   color: var(--text);

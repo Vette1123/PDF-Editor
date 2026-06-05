@@ -36,7 +36,7 @@ export interface EditorState {
 }
 
 export type Action =
-  | { type: 'ADD_TEXT'; x: number; y: number; page: number }
+  | { type: 'ADD_TEXT'; x: number; y: number; page: number; fontFamily?: FontFamily }
   | { type: 'ADD_SIGNATURE'; imageData: string; page: number }
   | { type: 'UPDATE'; id: string; patch: Partial<TextAnnotation> & Partial<SignatureAnnotation> }
   | { type: 'DELETE'; id: string }

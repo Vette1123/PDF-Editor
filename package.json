@@ -2,6 +2,7 @@
   "name": "signet",
   "version": "0.1.0",
   "private": true,
+  "description": "Signet — a privacy-first PDF editor that runs entirely in your browser. Add text, draw/type/upload signatures, and export — your files never leave your device.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -20,6 +21,7 @@
     "better-auth": "^1.6.14",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.17.0",
+    "motion": "^12.40.0",
     "next": "16.2.7",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "4.8.69",

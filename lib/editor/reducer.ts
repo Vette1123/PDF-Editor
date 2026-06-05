@@ -9,7 +9,7 @@ export function reducer(state: EditorState, action: Action): EditorState {
       const a: TextAnnotation = {
         kind: 'text', id: id('text'), text: 'Type here',
         x: action.x, y: action.y, fontSize: 16, color: '#000000',
-        fontFamily: 'Helvetica', pageNumber: action.page,
+        fontFamily: action.fontFamily ?? 'Helvetica', pageNumber: action.page,
       }
       return { ...state, annotations: [...state.annotations, a], selectedId: a.id }
     }

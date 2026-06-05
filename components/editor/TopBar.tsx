@@ -10,6 +10,7 @@ import {
   Redo2,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -132,7 +133,13 @@ export function TopBar({
   return (
     <>
       <header className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-panel)] px-3 sm:gap-3 sm:px-4">
-        <Logo />
+        <Link
+          href="/"
+          aria-label="Signet home"
+          className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+        >
+          <Logo />
+        </Link>
 
         <div className="mx-1 hidden h-6 w-px bg-[var(--border)] sm:block" />
 

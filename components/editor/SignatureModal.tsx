@@ -3,29 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import SignatureCanvas from 'react-signature-canvas'
-import { Pencil, Type, Upload, Eraser, X, Save, Bookmark, Trash2 } from 'lucide-react'
+import { Pencil, Type, Upload, Eraser, X, Save, Bookmark, Trash2, Star, Check } from 'lucide-react'
 import { Dialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
-import { useSession } from '@/lib/auth-client'
-
-/**
- * Calls `useSession()` (which hits /api/auth/get-session) and reports whether a
- * user is signed in. Rendered ONLY when auth is enabled, so the request never
- * fires on auth-disabled deployments. Renders nothing itself.
- */
-function SessionWatcher({ onChange }: { onChange: (signedIn: boolean) => void }) {
-  const { data } = useSession()
-  const signedIn = Boolean(data)
-  useEffect(() => {
-    onChange(signedIn)
-  }, [signedIn, onChange])
-  return null
-}
+import { SessionWatcher } from '@/components/auth/SessionWatcher'
 import {
   listSignatures,
   saveSignature,
   deleteSignature,
+  renameSignature,
+  setDefaultSignature,
   type SavedSignature,
 } from '@/lib/signatures/actions'
 
@@ -81,6 +69,9 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState<SavedSignature[]>([])
   const [loadingSaved, setLoadingSaved] = useState(false)
+  // Inline rename state for the Saved tab.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
 
   const font = HANDWRITING_FONTS[fontIndex]
 
@@ -246,6 +237,36 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
     },
     [toast],
   )
+
+  const handleSetDefault = useCallback(
+    async (id: string) => {
+      // Optimistic: flip the flag locally, default sorts first.
+      setSaved((xs) =>
+        [...xs.map((s) => ({ ...s, isDefault: s.id === id }))].sort(
+          (a, b) => Number(b.isDefault) - Number(a.isDefault),
+        ),
+      )
+      const res = await setDefaultSignature(id)
+      if ('error' in res) toast({ kind: 'error', message: res.error })
+    },
+    [toast],
+  )
+
+  const startRename = useCallback((s: SavedSignature) => {
+    setEditingId(s.id)
+    setEditName(s.name)
+  }, [])
+
+  const commitRename = useCallback(async () => {
+    const id = editingId
+    const name = editName.trim()
+    if (!id) return
+    setEditingId(null)
+    if (!name) return
+    setSaved((xs) => xs.map((s) => (s.id === id ? { ...s, name } : s)))
+    const res = await renameSignature(id, name)
+    if ('error' in res) toast({ kind: 'error', message: res.error })
+  }, [editingId, editName, toast])
 
   return (
     <Dialog open={open} onClose={onClose} label="Add signature">
@@ -469,25 +490,92 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
                   {saved.map((s) => (
                     <div
                       key={s.id}
-                      className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-white"
+                      className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-panel)]"
                     >
+                      {/* Default toggle (top-left) */}
                       <button
                         type="button"
-                        onClick={() => handleInsertSaved(s.dataUrl)}
-                        aria-label={`Insert signature ${s.name}`}
-                        className="grid h-24 w-full place-items-center p-3 transition-colors hover:bg-[var(--bg-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                        onClick={() => void handleSetDefault(s.id)}
+                        aria-label={s.isDefault ? `${s.name} is your default` : `Set ${s.name} as default`}
+                        aria-pressed={s.isDefault}
+                        title={s.isDefault ? 'Default signature' : 'Set as default'}
+                        className={[
+                          'absolute left-1.5 top-1.5 z-10 grid h-7 w-7 place-items-center rounded-lg bg-[var(--bg-panel)]/90 transition-[opacity,color] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
+                          s.isDefault
+                            ? 'text-[var(--accent)] opacity-100'
+                            : 'text-[var(--text-muted)] opacity-0 hover:text-[var(--text)] group-hover:opacity-100',
+                        ].join(' ')}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.dataUrl} alt={s.name} className="max-h-16 object-contain" />
+                        <Star size={15} fill={s.isDefault ? 'currentColor' : 'none'} />
                       </button>
+                      {/* Delete (top-right) */}
                       <button
                         type="button"
                         onClick={() => void handleDeleteSaved(s.id)}
                         aria-label={`Delete signature ${s.name}`}
-                        className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-lg bg-[var(--bg-panel)]/90 text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[var(--danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] group-hover:opacity-100"
+                        className="absolute right-1.5 top-1.5 z-10 grid h-7 w-7 place-items-center rounded-lg bg-[var(--bg-panel)]/90 text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[var(--danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] group-hover:opacity-100"
                       >
                         <Trash2 size={15} />
                       </button>
+                      {/* Insert (the image itself) */}
+                      <button
+                        type="button"
+                        onClick={() => handleInsertSaved(s.dataUrl)}
+                        aria-label={`Insert signature ${s.name}`}
+                        className="grid h-24 w-full place-items-center bg-white p-3 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.dataUrl} alt={s.name} className="max-h-16 object-contain" />
+                      </button>
+                      {/* Name / rename row */}
+                      <div className="flex items-center gap-1 border-t border-[var(--border)] px-2 py-1.5">
+                        {editingId === s.id ? (
+                          <>
+                            <input
+                              autoFocus
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onBlur={() => void commitRename()}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  void commitRename()
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault()
+                                  setEditingId(null)
+                                }
+                              }}
+                              aria-label="Rename signature"
+                              className="min-w-0 flex-1 rounded border border-[var(--border-strong)] bg-[var(--bg-canvas)] px-1.5 py-0.5 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void commitRename()}
+                              aria-label="Save name"
+                              className="grid h-6 w-6 shrink-0 place-items-center rounded text-[var(--accent)] hover:bg-[var(--bg-elevated)]"
+                            >
+                              <Check size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="min-w-0 flex-1 truncate text-xs text-[var(--text-muted)]">
+                              {s.name}
+                              {s.isDefault && (
+                                <span className="text-[var(--accent-text)]"> · default</span>
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => startRename(s)}
+                              aria-label={`Rename ${s.name}`}
+                              className="grid h-6 w-6 shrink-0 place-items-center rounded text-[var(--text-muted)] opacity-0 transition-opacity hover:bg-[var(--bg-elevated)] hover:text-[var(--text)] focus-visible:opacity-100 group-hover:opacity-100"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
