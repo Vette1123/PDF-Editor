@@ -10,7 +10,14 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 // page crashes the build. Load it client-only so it mounts after hydration.
 const AccountMenu = dynamic(
   () => import('@/components/auth/AccountMenu').then((m) => m.AccountMenu),
-  { ssr: false },
+  {
+    ssr: false,
+    // Reserve the avatar's footprint from first paint so the chunk loading +
+    // session fetch never shift the nav (skeleton -> avatar, same size).
+    loading: () => (
+      <div aria-hidden="true" className="h-8 w-8 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+    ),
+  },
 )
 
 const LINKS = [

@@ -20,7 +20,13 @@ import { ExportMenu } from './ExportMenu'
 // it out of any server prerender path.
 const AccountMenu = dynamic(
   () => import('@/components/auth/AccountMenu').then((m) => m.AccountMenu),
-  { ssr: false },
+  {
+    ssr: false,
+    // Reserve the avatar's footprint from first paint to avoid a nav shift.
+    loading: () => (
+      <div aria-hidden="true" className="h-8 w-8 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+    ),
+  },
 )
 
 export interface TopBarProps {
