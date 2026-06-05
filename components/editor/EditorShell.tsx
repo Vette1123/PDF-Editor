@@ -180,15 +180,15 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
   )
 
   // ---- Restore the last document on mount (after a sign-in/out round trip or
-  // a reload). Runs once; bytes are rebuilt into a File for react-pdf. ----
-  const restoredRef = useRef(false)
+  // a reload). Bytes are rebuilt into a File for react-pdf. Guarded by
+  // `docIdRef` rather than a run-once flag so it stays correct under React
+  // StrictMode's double-invoke (the second mount still restores), while never
+  // clobbering a document the user has already opened in the meantime. ----
   useEffect(() => {
-    if (restoredRef.current) return
-    restoredRef.current = true
     let cancelled = false
     void (async () => {
       const doc = await getCurrentDoc()
-      if (cancelled || !doc) return
+      if (cancelled || !doc || docIdRef.current) return
       applyDocument({
         docId: doc.docId,
         name: doc.name,
