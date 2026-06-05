@@ -8,6 +8,8 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Self-contained server build for the Dockerfile. Vercel ignores this.
+  output: 'standalone',
   // Keep better-auth (and its transitive kysely-adapter) out of the bundle so
   // Next.js loads it from node_modules at runtime. Without this, Turbopack's
   // strict ESM analysis fails on the kysely-adapter's sqlite dialects, which
