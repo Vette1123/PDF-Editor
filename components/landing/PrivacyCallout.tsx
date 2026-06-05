@@ -28,8 +28,8 @@ export function PrivacyCallout() {
             style={{ background: 'radial-gradient(60% 100% at 50% 0%, var(--accent) 0%, transparent 70%)' }}
           />
 
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-canvas)] px-3 py-1 text-xs font-medium text-[var(--success)]">
-            <Lock size={13} />
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-canvas)] px-3 py-1 text-xs font-medium text-[var(--text)]">
+            <Lock size={13} className="text-[var(--success)]" />
             Privacy-first
           </span>
 

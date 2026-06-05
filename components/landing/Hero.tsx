@@ -30,7 +30,7 @@ export function Hero() {
           rel="noopener noreferrer"
           className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-panel)] py-1.5 pl-2 pr-3.5 text-xs text-[var(--text-muted)] shadow-[var(--shadow)] transition-colors hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 font-medium text-[var(--accent)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 font-medium text-[var(--accent-text)]">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
