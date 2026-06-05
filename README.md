@@ -12,6 +12,8 @@
 
 _No sign-up. No upload. Free forever — no trial, paywall, or watermark._
 
+![Signet demo — open a PDF, add text, type a signature, drag it into place, and export](docs/demo.gif)
+
 Open a PDF, add text, draw or type a signature, and export the edited document — all processed locally on your device. Your files never leave your browser.
 
 Signet is a free, open-source alternative to online PDF tools like Adobe Acrobat Fill & Sign, DocuSign, Smallpdf, and iLovePDF — with one key difference: there is **no server**. Edit and sign PDFs online without uploading them anywhere.
@@ -157,6 +159,15 @@ Signet runs with **zero configuration** — no env vars are required for the cor
 | `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                  |
 
 Auth is enabled only when **both** `DATABASE_URL` and `BETTER_AUTH_SECRET` are present.
+
+## 🐳 Self-host with Docker
+
+```bash
+docker build -t signet .
+docker run -p 3000:3000 signet
+```
+
+That's it — the core editor needs zero configuration. To enable optional accounts, pass the auth env vars (see below) with `-e`.
 
 ## ▲ Deploy to Vercel
 
