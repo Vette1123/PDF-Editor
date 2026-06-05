@@ -1352,8 +1352,10 @@ git commit -m "feat: command palette (cmdk-style) for editor actions"
 
 **Files:** Create `components/editor/EditorShell.tsx`. Delete `components/PDFEditor.tsx`, `PDFViewer.tsx`, `PDFUpload.tsx`, `TextPropertiesPanel.tsx`, `app/pdf-viewer.css`.
 
-**Contract:** Top-level client component. Holds: `useEditor()`, `file`/`arrayBuffer` state, `scale`,
-`numPages`, signature-modal + palette open flags, filename. Wires:
+**Contract:** Top-level client component, `export default`. Props `{ authEnabled?: boolean }`
+(default false; consumed in Phase 6 to show account UI + save-signature features — until then it is
+accepted and passed to `TopBar`/`SignatureModal` but those may ignore it). Holds: `useEditor()`,
+`file`/`arrayBuffer` state, `scale`, `numPages`, signature-modal + palette open flags, filename. Wires:
 - file upload → read `arrayBuffer`, reset editor (`RESET`).
 - export → `exportPdf(arrayBuffer, state.annotations)` then `downloadBytes`; toast on success/failure; guard no-file.
 - global keys: V/T/S tools, Del/Backspace delete selection (not while typing in input), ⌘Z/⌘⇧Z undo/redo, ⌘K palette, ESC deselect.
@@ -1377,22 +1379,20 @@ git commit -m "feat: EditorShell composition root; remove legacy components"
 
 ### Task 3.8: `/editor` route
 
-**Files:** Create `app/editor/page.tsx`.
+**Files:** Create `app/editor/page.tsx` (server, metadata) + `components/editor/EditorClient.tsx` (client wrapper).
 
-- [ ] **Step 1: Create `app/editor/page.tsx`**
+> **Important (Next 16):** `next/dynamic` with `{ ssr: false }` is **not allowed inside a Server
+> Component**. So the route page (which must stay a server component to export `metadata`) renders a
+> thin **client** wrapper that performs the `ssr:false` dynamic import. The wrapper also receives the
+> server-known `authEnabled` flag (wired in Phase 6) and forwards it to `EditorShell`.
+
+- [ ] **Step 1: Create `components/editor/EditorClient.tsx`**
 
 ```tsx
-import type { Metadata } from 'next'
+'use client'
 import dynamic from 'next/dynamic'
-import { site } from '@/lib/seo/site'
 
-export const metadata: Metadata = {
-  title: `Editor — ${site.name}`,
-  description: site.description,
-  alternates: { canonical: '/editor' },
-}
-
-const EditorShell = dynamic(() => import('@/components/editor/EditorShell'), {
+const EditorShell = dynamic(() => import('./EditorShell'), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen grid place-items-center text-[var(--text-muted)]">
@@ -1401,19 +1401,44 @@ const EditorShell = dynamic(() => import('@/components/editor/EditorShell'), {
   ),
 })
 
-export default function EditorPage() {
-  return <main className="h-screen bg-[var(--bg-canvas)]"><EditorShell /></main>
+export function EditorClient({ authEnabled = false }: { authEnabled?: boolean }) {
+  return <EditorShell authEnabled={authEnabled} />
 }
 ```
 
-> Note: `EditorShell` must `export default`.
+- [ ] **Step 2: Create `app/editor/page.tsx`** (server component)
 
-- [ ] **Step 2: Run dev build sanity** — `npm run build` (expect success)
-- [ ] **Step 3: Commit**
+```tsx
+import type { Metadata } from 'next'
+import { EditorClient } from '@/components/editor/EditorClient'
+import { site } from '@/lib/seo/site'
+
+export const metadata: Metadata = {
+  title: 'Editor',
+  description: site.description,
+  alternates: { canonical: '/editor' },
+}
+
+export default function EditorPage() {
+  // `authEnabled` is wired to server-side auth config in Phase 6 (Task 6.x).
+  // Until then it defaults to false so the editor renders without any auth.
+  return (
+    <main className="h-screen bg-[var(--bg-canvas)]">
+      <EditorClient authEnabled={false} />
+    </main>
+  )
+}
+```
+
+> Notes: `EditorShell` must `export default` and accept an optional `authEnabled?: boolean` prop
+> (it may ignore it until Phase 6). `title: 'Editor'` uses the layout title template `%s · Signet`.
+
+- [ ] **Step 3: Run dev build sanity** — `npm run build` (expect success)
+- [ ] **Step 4: Commit**
 
 ```bash
-git add app/editor/page.tsx
-git commit -m "feat: /editor route (client-only)"
+git add app/editor/page.tsx components/editor/EditorClient.tsx
+git commit -m "feat: /editor route (server metadata + client editor wrapper)"
 ```
 
 ---
@@ -1811,6 +1836,402 @@ Expected: all green.
 ```bash
 git add README.md FEATURES.md
 git commit -m "docs: update README/FEATURES for Signet; record verification"
+```
+
+---
+
+## Phase 6 — Optional Auth & Saved Signatures (better-auth + Drizzle + Neon)
+
+> **Goal:** Let users *optionally* sign in to save and reuse signatures. The site stays fully usable
+> with no account; PDFs never leave the browser. **Critical constraint:** the app MUST build and run
+> with NO database/auth env vars set (the owner configures Neon later). Everything auth is gated
+> behind `authConfigured` (server) / an `authEnabled` prop (client). Mirrors the patterns in
+> `Vette1123/better-auth-starter`, adapted to this repo's root layout (no `src/`) and simplified
+> (email+password without required email verification, optional Google; no Resend dependency).
+
+### Task 6.1: Auth/DB dependencies, env, Drizzle schema
+
+**Files:** modify `package.json`; create `lib/env.ts`, `lib/db/schema.ts`, `lib/db/index.ts`, `drizzle.config.ts`, `.env.example`.
+
+- [ ] **Step 1: Install deps**
+
+```bash
+npm install better-auth drizzle-orm @neondatabase/serverless zod react-hook-form @hookform/resolvers
+npm install -D drizzle-kit
+```
+
+- [ ] **Step 2: Add scripts to `package.json`**: `"db:generate": "drizzle-kit generate"`, `"db:push": "drizzle-kit push"`.
+
+- [ ] **Step 3: Create `lib/env.ts`** (no throw — graceful when unset)
+
+```ts
+export const env = {
+  DATABASE_URL: process.env.DATABASE_URL,
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+}
+
+/** Pure, testable: auth is on only when both a DB URL and a secret are present. */
+export function computeAuthConfigured(dbUrl?: string, secret?: string): boolean {
+  return Boolean(dbUrl && secret)
+}
+
+export const authConfigured = computeAuthConfigured(env.DATABASE_URL, env.BETTER_AUTH_SECRET)
+```
+
+- [ ] **Step 4: Create `lib/db/schema.ts`** — better-auth core tables + `signature`
+
+```ts
+import { relations } from 'drizzle-orm'
+import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core'
+
+export const user = pgTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  image: text('image'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+})
+
+export const session = pgTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+}, (t) => [index('session_userId_idx').on(t.userId)])
+
+export const account = pgTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at'),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (t) => [index('account_userId_idx').on(t.userId)])
+
+export const verification = pgTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (t) => [index('verification_identifier_idx').on(t.identifier)])
+
+export const signature = pgTable('signature', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  dataUrl: text('data_url').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [index('signature_userId_idx').on(t.userId)])
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session), accounts: many(account), signatures: many(signature),
+}))
+export const signatureRelations = relations(signature, ({ one }) => ({
+  user: one(user, { fields: [signature.userId], references: [user.id] }),
+}))
+```
+
+- [ ] **Step 5: Create `lib/db/index.ts`** (null when unconfigured)
+
+```ts
+import { drizzle } from 'drizzle-orm/neon-http'
+import { neon } from '@neondatabase/serverless'
+import { env } from '@/lib/env'
+import * as schema from './schema'
+
+export const db = env.DATABASE_URL
+  ? drizzle(neon(env.DATABASE_URL), { schema })
+  : null
+```
+
+- [ ] **Step 6: Create `drizzle.config.ts`**
+
+```ts
+import { defineConfig } from 'drizzle-kit'
+export default defineConfig({
+  schema: './lib/db/schema.ts',
+  out: './drizzle',
+  dialect: 'postgresql',
+  dbCredentials: { url: process.env.DATABASE_URL! },
+})
+```
+
+- [ ] **Step 7: Create `.env.example`**
+
+```bash
+# Optional — only needed to enable saving signatures to an account.
+# Leave blank and the site works fully (editor + export) with no accounts.
+
+# Neon Postgres connection string — https://neon.tech (do NOT enable "Neon Auth")
+DATABASE_URL=
+# Random secret: `openssl rand -base64 32`
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Public canonical site URL used for SEO metadata/sitemap
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Optional Google OAuth (adds a "Continue with Google" button when both are set)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
+- [ ] **Step 8: Verify build still works WITHOUT env** — `npm run build` and `npm run typecheck` (expect success; `db` is `null`, nothing throws).
+- [ ] **Step 9: Commit**
+
+```bash
+git add package.json package-lock.json lib/env.ts lib/db drizzle.config.ts .env.example
+git commit -m "feat: auth/db deps, graceful env, drizzle schema (+signature table)"
+```
+
+### Task 6.2: better-auth server, client, session, route handler
+
+**Files:** create `lib/auth.ts`, `lib/auth-client.ts`, `lib/get-session.ts`, `app/api/auth/[...all]/route.ts`.
+
+- [ ] **Step 1: Create `lib/auth.ts`** (null when unconfigured)
+
+```ts
+import { betterAuth } from 'better-auth'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { nextCookies } from 'better-auth/next-js'
+import { db } from '@/lib/db'
+import { env, authConfigured } from '@/lib/env'
+
+export const auth = authConfigured && db
+  ? betterAuth({
+      baseURL: env.BETTER_AUTH_URL,
+      secret: env.BETTER_AUTH_SECRET,
+      database: drizzleAdapter(db, { provider: 'pg' }),
+      emailAndPassword: { enabled: true, requireEmailVerification: false },
+      socialProviders:
+        env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+          ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }
+          : undefined,
+      rateLimit: { enabled: true, window: 60, max: 20 },
+      plugins: [nextCookies()],
+    })
+  : null
+```
+
+- [ ] **Step 2: Create `lib/auth-client.ts`**
+
+```ts
+'use client'
+import { createAuthClient } from 'better-auth/react'
+
+export const authClient = createAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+})
+
+export const { signIn, signUp, signOut, useSession } = authClient
+```
+
+- [ ] **Step 3: Create `lib/get-session.ts`**
+
+```ts
+import { headers } from 'next/headers'
+import { auth } from '@/lib/auth'
+
+export async function getSession() {
+  if (!auth) return null
+  return auth.api.getSession({ headers: await headers() })
+}
+```
+
+- [ ] **Step 4: Create `app/api/auth/[...all]/route.ts`** (503 when unconfigured)
+
+```ts
+import { auth } from '@/lib/auth'
+import { toNextJsHandler } from 'better-auth/next-js'
+
+const notConfigured = () =>
+  new Response(JSON.stringify({ error: 'Authentication is not configured' }), {
+    status: 503, headers: { 'content-type': 'application/json' },
+  })
+
+export const { GET, POST } = auth
+  ? toNextJsHandler(auth)
+  : { GET: notConfigured, POST: notConfigured }
+```
+
+- [ ] **Step 5: Build + typecheck** (no env) — expect success.
+- [ ] **Step 6: Commit**
+
+```bash
+git add lib/auth.ts lib/auth-client.ts lib/get-session.ts "app/api/auth/[...all]/route.ts"
+git commit -m "feat: better-auth server/client/session + graceful route handler"
+```
+
+### Task 6.3: Signature server actions
+
+**Files:** create `lib/signatures/actions.ts`.
+
+- [ ] **Step 1: Create `lib/signatures/actions.ts`**
+
+```ts
+'use server'
+import { randomUUID } from 'crypto'
+import { and, desc, eq } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { signature } from '@/lib/db/schema'
+import { getSession } from '@/lib/get-session'
+
+export interface SavedSignature { id: string; name: string; dataUrl: string; createdAt: string }
+
+export async function listSignatures(): Promise<SavedSignature[]> {
+  const session = await getSession()
+  if (!session || !db) return []
+  const rows = await db.select().from(signature)
+    .where(eq(signature.userId, session.user.id))
+    .orderBy(desc(signature.createdAt))
+  return rows.map((r) => ({
+    id: r.id, name: r.name, dataUrl: r.dataUrl, createdAt: r.createdAt.toISOString(),
+  }))
+}
+
+export async function saveSignature(
+  input: { name: string; dataUrl: string },
+): Promise<{ id: string } | { error: string }> {
+  const session = await getSession()
+  if (!session || !db) return { error: 'Not signed in' }
+  const id = randomUUID()
+  await db.insert(signature).values({
+    id, userId: session.user.id, name: input.name?.trim() || 'Signature', dataUrl: input.dataUrl,
+  })
+  return { id }
+}
+
+export async function deleteSignature(id: string): Promise<{ ok: true } | { error: string }> {
+  const session = await getSession()
+  if (!session || !db) return { error: 'Not signed in' }
+  await db.delete(signature).where(and(eq(signature.id, id), eq(signature.userId, session.user.id)))
+  return { ok: true }
+}
+```
+
+- [ ] **Step 2: Typecheck** — expect 0. **Commit**
+
+```bash
+git add lib/signatures/actions.ts
+git commit -m "feat: signature CRUD server actions (session-guarded)"
+```
+
+### Task 6.4: Validations, Input primitive, auth forms & pages
+
+**Files:** create `lib/validations/auth.ts`, `lib/validations/auth.test.ts`, `components/ui/Input.tsx`, `components/auth/{AuthCard,LoginForm,SignupForm}.tsx`, `app/(auth)/layout.tsx`, `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx`.
+
+> Use **frontend-design** for the visual polish of the auth card/forms (precision pro-tool dark
+> theme, tokens). Reuse Phase 2 `Button`, `Dialog` styles, and `useToast`.
+
+- [ ] **Step 1: Write failing test `lib/validations/auth.test.ts`**
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { signupSchema, loginSchema } from './auth'
+
+describe('auth validations', () => {
+  it('rejects short passwords on signup', () => {
+    expect(signupSchema.safeParse({ name: 'Jo', email: 'a@b.com', password: 'short' }).success).toBe(false)
+  })
+  it('accepts a valid signup', () => {
+    expect(signupSchema.safeParse({ name: 'Jane', email: 'a@b.com', password: 'longenough' }).success).toBe(true)
+  })
+  it('requires a password on login', () => {
+    expect(loginSchema.safeParse({ email: 'a@b.com', password: '' }).success).toBe(false)
+  })
+})
+```
+
+- [ ] **Step 2: Run — FAIL** — `npm test -- validations`
+
+- [ ] **Step 3: Create `lib/validations/auth.ts`**
+
+```ts
+import { z } from 'zod'
+export const signupSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+export const loginSchema = z.object({
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(1, 'Password is required'),
+})
+export type SignupInput = z.infer<typeof signupSchema>
+export type LoginInput = z.infer<typeof loginSchema>
+```
+
+- [ ] **Step 4: Run — PASS** — `npm test -- validations`
+
+- [ ] **Step 5: Create `components/ui/Input.tsx`** — labeled text input + a password input with show/hide toggle; token styling, focus ring, `forwardRef`, accepts all native input props. Exports `Input` and `PasswordInput`.
+
+- [ ] **Step 6: Create `components/auth/LoginForm.tsx` + `SignupForm.tsx`** — `'use client'`, RHF + `zodResolver`. `LoginForm` calls `signIn.email({ email, password, callbackURL: '/editor' })`; on `error` → `useToast().toast({kind:'error', message})`; on success → `router.push('/editor')`. `SignupForm` calls `signUp.email({ name, email, password, callbackURL: '/editor' })`; success → success toast + `router.push('/editor')` (auto sign-in is on since email verification is not required). If Google env is set, show a "Continue with Google" button calling `signIn.social({ provider: 'google', callbackURL: '/editor' })` — render it always; it simply 503s if unconfigured. Wrap both in a shared `AuthCard` (logo + title + children).
+
+- [ ] **Step 7: Create `app/(auth)/layout.tsx`** — centered, min-h-screen, token bg; renders children. Create `login/page.tsx` and `signup/page.tsx` (server components): if `!authConfigured` (import from `@/lib/env`), render a friendly notice ("Accounts aren't enabled on this deployment" + link back to `/editor`); else render `<LoginForm/>` / `<SignupForm/>`. Add `export const metadata` titles ('Log in' / 'Sign up').
+
+- [ ] **Step 8: Typecheck + test** — `npm run typecheck` (0), `npm test` (all pass). **Commit**
+
+```bash
+git add lib/validations components/ui/Input.tsx components/auth "app/(auth)"
+git commit -m "feat: auth validations, input primitive, login/signup forms + pages"
+```
+
+### Task 6.5: Account menu + sign-out
+
+**Files:** create `components/auth/AccountMenu.tsx`, `components/auth/SignOutButton.tsx`.
+
+- [ ] **Step 1: Create `components/auth/SignOutButton.tsx`** — `'use client'`, calls `signOut()` then `router.refresh()`; uses Phase 2 `Button variant="ghost"` with `LogOut` icon + `aria-label`.
+
+- [ ] **Step 2: Create `components/auth/AccountMenu.tsx`** — `'use client'`. Uses `useSession()`. While `isPending` render nothing/skeleton. If no session → a `Sign in` link (`<Link href="/login">`) styled as a ghost button. If session → show the user's email/initial in a small popover with `SignOutButton`. This component is only mounted by callers when `authEnabled` is true (so `useSession`'s network call never fires on auth-disabled deployments).
+
+- [ ] **Step 3: Typecheck** — expect 0. **Commit**
+
+```bash
+git add components/auth/AccountMenu.tsx components/auth/SignOutButton.tsx
+git commit -m "feat: account menu + sign-out button"
+```
+
+### Task 6.6: Wire auth into editor, nav, and signature modal
+
+**Files:** modify `app/editor/page.tsx`, `components/editor/EditorShell.tsx`, `components/editor/TopBar.tsx`, `components/editor/SignatureModal.tsx`, `components/landing/Nav.tsx`, `app/page.tsx`.
+
+- [ ] **Step 1: `app/editor/page.tsx`** — import `authConfigured` from `@/lib/env`; pass `authEnabled={authConfigured}` to `<EditorClient>`.
+
+- [ ] **Step 2: `EditorShell`** — already accepts `authEnabled`; pass it to `TopBar` and `SignatureModal`.
+
+- [ ] **Step 3: `TopBar`** — accept `authEnabled?: boolean`; when true, render `<AccountMenu/>` (right side, next to ThemeToggle).
+
+- [ ] **Step 4: `Nav` (landing)** — accept `authEnabled?: boolean`; when true, render `<AccountMenu/>` beside the CTA. In `app/page.tsx` (server) import `authConfigured` and pass `<Nav authEnabled={authConfigured} />`.
+
+- [ ] **Step 5: `SignatureModal`** — accept `authEnabled?: boolean`. Add behavior, gated by `authEnabled`:
+  - Use `useSession()` (hook always called; only act on its result when `authEnabled`).
+  - When signed in: after a signature is drawn/typed/uploaded, show a **"Save to my account"** control (name input + save) calling `saveSignature(...)` → success/error toast.
+  - Add a **"Saved"** tab (4th tab) that, when signed in, loads `listSignatures()` and shows a grid of saved signatures; clicking one calls `onSave(dataUrl)` to insert it; each has a delete (×) calling `deleteSignature(id)`.
+  - When `authEnabled` but signed out: the Saved tab shows a gentle "Sign in to save and reuse signatures" with a link to `/login` (opens in same tab). When `!authEnabled`: do not render the Saved tab or save control at all.
+
+- [ ] **Step 6: Typecheck + build** — `npm run typecheck` (0), `npm run build` (success, no env). **Commit**
+
+```bash
+git add app/editor/page.tsx components/editor/EditorShell.tsx components/editor/TopBar.tsx components/editor/SignatureModal.tsx components/landing/Nav.tsx app/page.tsx
+git commit -m "feat: wire optional auth into editor, nav, and signature saving"
 ```
 
 ---
