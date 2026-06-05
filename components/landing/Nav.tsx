@@ -1,9 +1,17 @@
 'use client'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { ArrowUpRight } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { AccountMenu } from '@/components/auth/AccountMenu'
+
+// AccountMenu uses better-auth's useSession (a browser-only client hook) that
+// cannot be statically prerendered — rendering it during SSG of the landing
+// page crashes the build. Load it client-only so it mounts after hydration.
+const AccountMenu = dynamic(
+  () => import('@/components/auth/AccountMenu').then((m) => m.AccountMenu),
+  { ssr: false },
+)
 
 const LINKS = [
   { href: '#features', label: 'Features' },
