@@ -27,6 +27,10 @@ export function Toolbar({ tool, onTool, hasSelection, onDelete }: ToolbarProps) 
         'fixed inset-x-0 bottom-0 z-30 flex items-center justify-evenly gap-2',
         'border-t border-[var(--border)] bg-[var(--bg-panel)] px-3 py-2',
         'pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+        // Clip the side="right" tooltips on mobile (they don't show on touch and
+        // would otherwise extend past the viewport edge → horizontal overflow).
+        // Desktop rail keeps them visible.
+        'overflow-x-clip lg:overflow-visible',
         // Desktop (lg+): restore the original static vertical left rail.
         'lg:static lg:inset-auto lg:z-auto lg:h-full lg:w-14 lg:flex-col lg:justify-start lg:gap-2',
         'lg:border-r lg:border-t-0 lg:px-0 lg:py-3 lg:pb-3',

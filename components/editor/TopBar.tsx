@@ -88,7 +88,7 @@ export function TopBar({
       <IconButton label="Previous page" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1}>
         <ChevronLeft size={18} />
       </IconButton>
-      <span className="min-w-[4.5rem] text-center font-mono text-xs text-[var(--text-muted)]">
+      <span className="min-w-[2.75rem] text-center font-mono text-xs text-[var(--text-muted)] sm:min-w-[4.5rem]">
         {page} / {numPages || 1}
       </span>
       <IconButton
@@ -106,7 +106,7 @@ export function TopBar({
       <IconButton label="Zoom out" onClick={() => onZoom(Math.max(0.25, scale - 0.1))}>
         <ZoomOut size={18} />
       </IconButton>
-      <span className="min-w-[3rem] text-center font-mono text-xs text-[var(--text-muted)]">
+      <span className="min-w-[2.5rem] text-center font-mono text-xs text-[var(--text-muted)]">
         {Math.round(scale * 100)}%
       </span>
       <IconButton label="Zoom in" onClick={() => onZoom(Math.min(3, scale + 0.1))}>
