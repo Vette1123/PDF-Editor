@@ -81,10 +81,10 @@ export function TopBar({
   authEnabled = false,
 }: TopBarProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-panel)] px-4">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-panel)] px-3 sm:gap-3 sm:px-4">
       <Logo />
 
-      <div className="mx-1 h-6 w-px bg-[var(--border)]" />
+      <div className="mx-1 hidden h-6 w-px bg-[var(--border)] sm:block" />
 
       {/* Filename */}
       <input
@@ -92,7 +92,7 @@ export function TopBar({
         onChange={(e) => onRename(e.target.value)}
         aria-label="Document name"
         spellCheck={false}
-        className="min-w-0 max-w-[14rem] flex-shrink truncate rounded-md bg-transparent px-2 py-1 text-sm font-medium text-[var(--text)] outline-none transition-colors hover:bg-[var(--bg-elevated)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-ring)]"
+        className="min-w-0 max-w-[8rem] flex-shrink truncate rounded-md bg-transparent px-2 py-1 text-sm font-medium text-[var(--text)] outline-none transition-colors hover:bg-[var(--bg-elevated)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-ring)] sm:max-w-[14rem]"
       />
 
       <div className="flex flex-1 items-center justify-center gap-1">
@@ -101,7 +101,7 @@ export function TopBar({
           <IconButton label="Previous page" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1}>
             <ChevronLeft size={18} />
           </IconButton>
-          <span className="min-w-[4.5rem] text-center font-mono text-xs text-[var(--text-muted)]">
+          <span className="hidden min-w-[4.5rem] text-center font-mono text-xs text-[var(--text-muted)] sm:inline">
             {page} / {numPages || 1}
           </span>
           <IconButton
@@ -113,7 +113,7 @@ export function TopBar({
           </IconButton>
         </div>
 
-        <div className="mx-1 h-6 w-px bg-[var(--border)]" />
+        <div className="mx-1 hidden h-6 w-px bg-[var(--border)] sm:block" />
 
         {/* Zoom */}
         <div className="flex items-center gap-1">
@@ -126,9 +126,12 @@ export function TopBar({
           <IconButton label="Zoom in" onClick={() => onZoom(Math.min(3, scale + 0.1))}>
             <ZoomIn size={18} />
           </IconButton>
-          <IconButton label="Fit width" onClick={onFit}>
-            <Maximize2 size={16} />
-          </IconButton>
+          {/* Fit-width is secondary — hide on the smallest screens. */}
+          <span className="hidden sm:inline-flex">
+            <IconButton label="Fit width" onClick={onFit}>
+              <Maximize2 size={16} />
+            </IconButton>
+          </span>
         </div>
       </div>
 
@@ -142,7 +145,7 @@ export function TopBar({
         </IconButton>
       </div>
 
-      <div className="mx-1 h-6 w-px bg-[var(--border)]" />
+      <div className="mx-1 hidden h-6 w-px bg-[var(--border)] sm:block" />
 
       <ExportMenu onDownload={onExport} />
       <ThemeToggle />

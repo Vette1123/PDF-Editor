@@ -21,7 +21,16 @@ export function Toolbar({ tool, onTool, hasSelection, onDelete }: ToolbarProps) 
   return (
     <nav
       aria-label="Tools"
-      className="flex h-full w-14 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--bg-panel)] py-3"
+      className={[
+        // Mobile (< lg): fixed horizontal bar pinned to the bottom of the editor,
+        // full width, safe-area aware, sitting above the canvas content.
+        'fixed inset-x-0 bottom-0 z-30 flex items-center justify-evenly gap-2',
+        'border-t border-[var(--border)] bg-[var(--bg-panel)] px-3 py-2',
+        'pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+        // Desktop (lg+): restore the original static vertical left rail.
+        'lg:static lg:inset-auto lg:z-auto lg:h-full lg:w-14 lg:flex-col lg:justify-start lg:gap-2',
+        'lg:border-r lg:border-t-0 lg:px-0 lg:py-3 lg:pb-3',
+      ].join(' ')}
     >
       {TOOLS.map((t) => {
         const Icon = t.icon
@@ -33,7 +42,7 @@ export function Toolbar({ tool, onTool, hasSelection, onDelete }: ToolbarProps) 
               aria-pressed={active}
               aria-label={`${t.label} tool`}
               className={[
-                'grid h-10 w-10 place-items-center rounded-lg border transition-colors',
+                'grid h-11 w-11 place-items-center rounded-lg border transition-colors lg:h-10 lg:w-10',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                 active
                   ? 'border-[var(--accent)] bg-[var(--accent)]/[0.12] text-[var(--accent)]'
@@ -46,7 +55,8 @@ export function Toolbar({ tool, onTool, hasSelection, onDelete }: ToolbarProps) 
         )
       })}
 
-      <div className="my-1 h-px w-7 bg-[var(--border)]" />
+      {/* Divider: horizontal separator on mobile, the original vertical-rule slab on desktop. */}
+      <div className="h-7 w-px bg-[var(--border)] lg:my-1 lg:h-px lg:w-7" />
 
       <Tooltip label="Delete (Del)" side="right">
         <button
@@ -54,7 +64,7 @@ export function Toolbar({ tool, onTool, hasSelection, onDelete }: ToolbarProps) 
           disabled={!hasSelection}
           aria-label="Delete selection"
           className={[
-            'grid h-10 w-10 place-items-center rounded-lg border border-transparent transition-colors',
+            'grid h-11 w-11 place-items-center rounded-lg border border-transparent transition-colors lg:h-10 lg:w-10',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
             'disabled:opacity-30 disabled:pointer-events-none',
             'text-[var(--danger)] hover:bg-[var(--danger)]/10',
