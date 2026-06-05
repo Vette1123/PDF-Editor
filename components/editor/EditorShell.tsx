@@ -13,6 +13,7 @@ import { PageThumbnails } from './PageThumbnails'
 import { SignatureModal } from './SignatureModal'
 import { CommandPalette, type Command } from './CommandPalette'
 import type { Tool } from '@/lib/editor/types'
+import { useMediaQuery } from '@/lib/use-media-query'
 
 const isTypingTarget = (el: EventTarget | null): boolean => {
   const node = el as HTMLElement | null
@@ -33,6 +34,17 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
   const [sigOpen, setSigOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [thumbsCollapsed, setThumbsCollapsed] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  // Below lg the thumbnails default to collapsed so they never steal canvas
+  // width; on desktop they stay expanded. Follows the breakpoint until the user
+  // overrides it manually for the current width.
+  const lastDesktop = useRef<boolean | null>(null)
+  useEffect(() => {
+    if (lastDesktop.current === isDesktop) return
+    lastDesktop.current = isDesktop
+    setThumbsCollapsed(!isDesktop)
+  }, [isDesktop])
 
   const selected = useMemo(
     () => state.annotations.find((a) => a.id === state.selectedId) ?? null,
@@ -176,7 +188,7 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
         authEnabled={authEnabled}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <Toolbar
           tool={state.tool}
           onTool={setTool}
@@ -193,7 +205,9 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
           onToggle={() => setThumbsCollapsed((c) => !c)}
         />
 
-        <main className="min-w-0 flex-1">
+        {/* Bottom padding on mobile clears the fixed bottom toolbar so canvas
+            content (and its last page) is never hidden behind it. */}
+        <main className="min-w-0 flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0">
           <DocumentCanvas
             file={file}
             scale={scale}
@@ -209,6 +223,7 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
         <Inspector
           selected={selected}
           onUpdate={(id, patch) => dispatch({ type: 'UPDATE', id, patch })}
+          onClose={() => dispatch({ type: 'SELECT', id: null })}
         />
       </div>
 
