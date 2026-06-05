@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, integer, index, unique } from 'drizzle-orm/pg-core'
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -52,12 +52,50 @@ export const signature = pgTable('signature', {
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   dataUrl: text('data_url').notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => [index('signature_userId_idx').on(t.userId)])
 
-export const userRelations = relations(user, ({ many }) => ({
-  sessions: many(session), accounts: many(account), signatures: many(signature),
+// Annotation drafts ("recent documents"). Stores the annotation JSON + the
+// document name only — never the PDF bytes (those stay in the browser via
+// lib/editor/pdf-store). `docId` mirrors the local IndexedDB id so a draft can
+// be matched back to its local file on return.
+export const document = pgTable('document', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  docId: text('doc_id').notNull(),
+  name: text('name').notNull(),
+  annotations: text('annotations').notNull().default('[]'),
+  pageCount: integer('page_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (t) => [
+  index('document_userId_idx').on(t.userId),
+  unique('document_user_doc_unique').on(t.userId, t.docId),
+])
+
+// Per-user editor preferences (theme, default font, default zoom).
+export const userPreference = pgTable('user_preference', {
+  userId: text('user_id').primaryKey().references(() => user.id, { onDelete: 'cascade' }),
+  theme: text('theme'),
+  defaultFont: text('default_font'),
+  defaultZoom: integer('default_zoom'),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+})
+
+export const userRelations = relations(user, ({ many, one }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  signatures: many(signature),
+  documents: many(document),
+  preference: one(userPreference, { fields: [user.id], references: [userPreference.userId] }),
 }))
 export const signatureRelations = relations(signature, ({ one }) => ({
   user: one(user, { fields: [signature.userId], references: [user.id] }),
+}))
+export const documentRelations = relations(document, ({ one }) => ({
+  user: one(user, { fields: [document.userId], references: [user.id] }),
+}))
+export const userPreferenceRelations = relations(userPreference, ({ one }) => ({
+  user: one(user, { fields: [userPreference.userId], references: [user.id] }),
 }))
