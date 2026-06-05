@@ -15,6 +15,17 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
 }
 
+// Fixed positions (no Math.random — keeps SSR/CSR markup identical) for the
+// small drifting particles in the hero backdrop.
+const PARTICLES = [
+  { left: '12%', top: '30%', size: 6, travel: 26, dur: 7, delay: 0 },
+  { left: '24%', top: '62%', size: 4, travel: 18, dur: 9, delay: 1.2 },
+  { left: '46%', top: '22%', size: 5, travel: 30, dur: 8, delay: 0.6 },
+  { left: '68%', top: '58%', size: 4, travel: 22, dur: 10, delay: 2 },
+  { left: '82%', top: '34%', size: 6, travel: 28, dur: 7.5, delay: 0.4 },
+  { left: '90%', top: '66%', size: 3, travel: 16, dur: 11, delay: 1.6 },
+]
+
 export function Hero() {
   const reduce = useReducedMotion()
   // Reduced motion: skip the looping aurora; keep a static halo.
@@ -23,8 +34,8 @@ export function Hero() {
 
   return (
     <section className="relative isolate overflow-hidden">
-      {/* Blueprint grid backdrop */}
-      <div
+      {/* Blueprint grid backdrop — slowly drifts one cell over time. */}
+      <motion.div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 opacity-[0.5] [mask-image:radial-gradient(ellipse_60%_55%_at_50%_30%,black,transparent)]"
         style={{
@@ -32,7 +43,23 @@ export function Hero() {
             'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)',
           backgroundSize: '64px 64px',
         }}
+        animate={reduce ? undefined : { backgroundPosition: ['0px 0px', '64px 64px'] }}
+        transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
       />
+
+      {/* Small drifting particles. */}
+      {!reduce &&
+        PARTICLES.map((p, i) => (
+          <motion.span
+            key={i}
+            aria-hidden="true"
+            className="pointer-events-none absolute -z-10 rounded-full bg-[var(--accent)]"
+            style={{ left: p.left, top: p.top, width: p.size, height: p.size }}
+            initial={{ opacity: 0.2 }}
+            animate={{ y: [0, -p.travel, 0], opacity: [0.12, 0.45, 0.12] }}
+            transition={{ duration: p.dur, repeat: Infinity, ease: 'easeInOut', delay: p.delay }}
+          />
+        ))}
       {/* Living aurora — two slow-drifting accent blooms. */}
       <motion.div
         aria-hidden="true"

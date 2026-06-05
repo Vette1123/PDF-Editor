@@ -25,7 +25,7 @@ export default function HomePage() {
         <Hero />
         <FeatureGrid />
         <HowItWorks />
-        <Reveal><PrivacyCallout /></Reveal>
+        <PrivacyCallout />
         <Reveal><FAQ /></Reveal>
       </main>
       <Footer />
