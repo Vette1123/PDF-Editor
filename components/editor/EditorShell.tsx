@@ -12,8 +12,16 @@ import { Inspector } from './Inspector'
 import { PageThumbnails } from './PageThumbnails'
 import { SignatureModal } from './SignatureModal'
 import { CommandPalette, type Command } from './CommandPalette'
-import type { Tool } from '@/lib/editor/types'
+import type { Tool, Annotation } from '@/lib/editor/types'
 import { useMediaQuery } from '@/lib/use-media-query'
+import {
+  getCurrentDoc,
+  getDoc,
+  putDoc,
+  setCurrent,
+  updateAnnotations,
+  newDocId,
+} from '@/lib/editor/pdf-store'
 
 const isTypingTarget = (el: EventTarget | null): boolean => {
   const node = el as HTMLElement | null
@@ -28,6 +36,8 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
 
   const [file, setFile] = useState<File | null>(null)
   const arrayBufferRef = useRef<ArrayBuffer | null>(null)
+  // Id of the current document in the local IndexedDB store (lib/editor/pdf-store).
+  const docIdRef = useRef<string | null>(null)
   const [filename, setFilename] = useState('document')
   const [scale, setScale] = useState(1)
   const [numPages, setNumPages] = useState(0)
@@ -79,17 +89,76 @@ export default function EditorShell({ authEnabled = false }: { authEnabled?: boo
     async (f: File) => {
       const buf = await f.arrayBuffer()
       arrayBufferRef.current = buf
+      const name = f.name.replace(/\.pdf$/i, '') || 'document'
       setFile(f)
-      setFilename(f.name.replace(/\.pdf$/i, '') || 'document')
+      setFilename(name)
       setNumPages(0)
       // New document: forget the previous page width and re-enable auto-fit so
       // the first page of the new doc fits the viewport.
       pageWidthRef.current = null
       userZoomedRef.current = false
       dispatch({ type: 'RESET' })
+
+      // Persist locally so the document survives a sign-in/sign-out navigation
+      // (and full reloads). Bytes stay in the browser — never uploaded.
+      const docId = newDocId()
+      docIdRef.current = docId
+      void putDoc({
+        docId,
+        name,
+        bytes: buf.slice(0),
+        pageCount: 0,
+        annotations: [],
+        updatedAt: Date.now(),
+      })
+      void setCurrent(docId)
     },
     [dispatch],
   )
+
+  // ---- Restore the last document on mount (after a sign-in/out round trip or
+  // a reload). Runs once; bytes are rebuilt into a File for react-pdf. ----
+  const restoredRef = useRef(false)
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    let cancelled = false
+    void (async () => {
+      const doc = await getCurrentDoc()
+      if (cancelled || !doc) return
+      docIdRef.current = doc.docId
+      arrayBufferRef.current = doc.bytes
+      pageWidthRef.current = null
+      userZoomedRef.current = false
+      const restored = new File([doc.bytes], `${doc.name}.pdf`, { type: 'application/pdf' })
+      setFilename(doc.name)
+      setFile(restored)
+      if (Array.isArray(doc.annotations) && doc.annotations.length > 0) {
+        dispatch({ type: 'RESET', state: { annotations: doc.annotations as Annotation[] } })
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch])
+
+  // Debounced local autosave of the annotation draft for the current document.
+  useEffect(() => {
+    const id = docIdRef.current
+    if (!id) return
+    const t = setTimeout(() => void updateAnnotations(id, state.annotations), 800)
+    return () => clearTimeout(t)
+  }, [state.annotations])
+
+  // Record the page count once the document reports it (best effort).
+  useEffect(() => {
+    const id = docIdRef.current
+    if (!id || !numPages) return
+    void (async () => {
+      const d = await getDoc(id)
+      if (d && d.pageCount !== numPages) await putDoc({ ...d, pageCount: numPages })
+    })()
+  }, [numPages])
 
   // ---- Export ----
   const handleExport = useCallback(async () => {

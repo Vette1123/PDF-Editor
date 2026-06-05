@@ -12,6 +12,9 @@ export function SignOutButton() {
   const onSignOut = async () => {
     setPending(true)
     await signOut()
+    // Return to the editor so the user lands back on their document (restored
+    // from local storage) rather than being stranded on an account-gated view.
+    router.push('/editor')
     router.refresh()
   }
 
