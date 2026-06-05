@@ -1,0 +1,23 @@
+# pnpm settings (pnpm 11 reads project settings from here, not package.json).
+# kysely/better-call are pinned to versions compatible with better-auth 1.6.x —
+# newer kysely (0.29.x) moved migration constants to a subpath, breaking
+# Turbopack's strict ESM analysis of @better-auth/kysely-adapter.
+overrides:
+  kysely: 0.28.17
+  better-call: 1.3.5
+  # Keep a single pdfjs-dist copy matching react-pdf 9.2.1's exact pin so the
+  # self-hosted worker version equals the API version (mismatch => PDFs fail to
+  # open). pnpm's strict layout otherwise nests two different 4.x versions.
+  pdfjs-dist: 4.8.69
+
+# Native packages allowed to run install scripts. `canvas` stays false — it is
+# aliased to false in next.config.ts and needs no native build.
+allowBuilds:
+  canvas: false
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  '@tailwindcss/oxide': true
+
+# Don't re-run install as a pre-step on every `pnpm run <script>`.
+verifyDepsBeforeRun: false

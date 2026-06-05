@@ -1,20 +1,33 @@
-'use client'
+import type { Metadata } from 'next'
+import { Nav } from '@/components/landing/Nav'
+import { Hero } from '@/components/landing/Hero'
+import { FeatureGrid } from '@/components/landing/FeatureGrid'
+import { HowItWorks } from '@/components/landing/HowItWorks'
+import { PrivacyCallout } from '@/components/landing/PrivacyCallout'
+import { FAQ } from '@/components/landing/FAQ'
+import { Footer } from '@/components/landing/Footer'
+import { FAQ_ITEMS } from '@/components/landing/faq-data'
+import { softwareAppLd, faqLd } from '@/lib/seo/structured-data'
+import { authConfigured } from '@/lib/env'
 
-import dynamic from 'next/dynamic'
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
-const PDFEditor = dynamic(() => import('@/components/PDFEditor'), {
-  ssr: false,
-  loading: () => (
-    <div className='min-h-screen flex items-center justify-center'>
-      <div className='text-xl text-slate-600'>Loading PDF Editor...</div>
-    </div>
-  ),
-})
-
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className='min-h-screen bg-linear-to-br from-slate-50 to-slate-100'>
-      <PDFEditor />
-    </main>
+    <>
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppLd()) }} />
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd(FAQ_ITEMS)) }} />
+      <Nav authEnabled={authConfigured} />
+      <main>
+        <Hero />
+        <FeatureGrid />
+        <HowItWorks />
+        <PrivacyCallout />
+        <FAQ />
+      </main>
+      <Footer />
+    </>
   )
 }
