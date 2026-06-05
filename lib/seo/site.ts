@@ -3,7 +3,7 @@ export const site = {
   title: 'Signet — Edit & Sign PDFs Privately in Your Browser',
   shortDescription: 'Free, private, in-browser PDF editor.',
   description:
-    'Signet is a free, privacy-first PDF editor. Add text, draw or type signatures, and export — entirely in your browser. No uploads, no accounts, your files never leave your device.',
+    'Signet is a free, privacy-first PDF editor. Add text, draw or type signatures, and export — entirely in your browser. Your PDFs never leave your device; optionally create a free account to save and reuse signatures.',
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://signet.app',
   tagline: 'Edit & sign PDFs — privately, in your browser.',
   keywords: [
