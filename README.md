@@ -12,18 +12,36 @@ Open a PDF, add text, draw or type a signature, and export the edited document �
 
 ## ✨ Features
 
+### Editing
+
 - ✍️ **Text annotations** — place text anywhere with customizable font, size, and color
 - ✒️ **Signatures, three ways**:
   - **Draw** — sign with mouse or touchscreen
   - **Type** — pick from four elegant handwriting fonts (Caveat, Dancing Script, Great Vibes, Sacramento) with live preview
   - **Upload** — use an existing signature image (PNG, JPG, …)
-- 🖱️ **Drag, touch & resize** — move and resize text and signatures with mouse or touch
-- 🔍 **Zoom & page navigation** — zoom in/out and browse multi-page documents
-- 💾 **Export** — download a PDF with all annotations permanently embedded; the original is never modified
-- ⌨️ **Command palette & shortcuts** — quick actions (⌘K) plus undo/redo
+- 🖱️ **Drag, touch & resize** — move and resize text and signatures with mouse, touch, or keyboard nudging
+- 🔍 **Zoom, fit-to-width & page navigation** — page thumbnails and smooth zoom for multi-page documents
+- ↩️ **Undo / redo** with a 50-step history
+- 💾 **Pixel-accurate export** — download a PDF with all annotations permanently embedded; the original is never modified
+- ⌨️ **Command palette & shortcuts** — quick actions (⌘K) plus tool shortcuts
+
+### Experience
+
+- 🔁 **Resume where you left off** — the open PDF is cached in your browser (IndexedDB), so it’s restored automatically after a reload or a sign-in/sign-out round-trip. The bytes never leave your device.
+- 🎬 **Animated, polished UI** — tasteful [Motion](https://motion.dev) animations throughout (animated hero, scroll reveals, dialog/toast transitions) with full `prefers-reduced-motion` support
+- 📱 **Fully responsive** — adapts from phone to desktop, including the editor chrome
 - 🌗 **Light & dark themes**
-- 🔒 **100% private** — everything runs client-side; no file ever touches a server
-- 👤 **Optional account-saved signatures** _(coming soon)_ — when configured with the optional auth env vars, signed-in users can save and reuse signatures. The app stays fully usable with no account, and PDFs still never leave the browser.
+- 🔒 **100% private** — all PDF processing runs client-side; no file ever touches a server
+
+### Accounts _(optional)_
+
+Sign-in is **never required** — the editor and export work fully anonymously. When the optional auth env vars are configured, signed-in users get extras (and PDF bytes _still_ never leave the browser):
+
+- 🖋️ **Saved signatures** — save signatures to your account, then **set a default**, **rename**, or **delete** them and reuse anywhere
+- 🗂️ **Recent documents** — your annotation **drafts** sync to your account so you can pick up a document again (only the annotations + name sync; the PDF file itself stays on your device)
+- ⚙️ **Synced preferences** — theme, default text font, and default zoom follow your account across devices
+- 👤 **Profile & settings page** (`/account`) — one place to manage signatures, recent documents, and preferences
+- 🔑 **Email/password or Google** sign-in (Google optional)
 
 👉 See the [full feature list](FEATURES.md) and the [quick start guide](QUICK_START.md).
 
@@ -34,9 +52,14 @@ Open a PDF, add text, draw or type a signature, and export the edited document �
 | Framework    | [Next.js 16](https://nextjs.org) (App Router) + React 19      |
 | Language     | [TypeScript 5](https://www.typescriptlang.org)                |
 | Styling      | [Tailwind CSS 4](https://tailwindcss.com)                     |
+| Animation    | [Motion](https://motion.dev)                                  |
 | PDF Export   | [pdf-lib](https://pdf-lib.js.org) — annotation embedding      |
 | PDF Render   | [react-pdf](https://github.com/wojtekmaj/react-pdf) + PDF.js  |
 | Signatures   | [react-signature-canvas](https://github.com/agilgur5/react-signature-canvas) |
+| Local storage| IndexedDB — caches the open PDF + annotation drafts on-device |
+| Auth _(opt.)_| [Better Auth](https://better-auth.com)                        |
+| Database _(opt.)_ | [Drizzle ORM](https://orm.drizzle.team) + [Neon](https://neon.tech) Postgres |
+| Forms        | [React Hook Form](https://react-hook-form.com) + [Zod](https://zod.dev) |
 | Icons        | [Lucide React](https://lucide.dev)                            |
 
 ## 🚀 Getting Started
@@ -94,6 +117,16 @@ Drag and drop a PDF into the upload area on `/editor`, or click to browse.
 
 Click **Export / Download** — your edited document downloads with all annotations embedded. The original file is never modified.
 
+### Accounts _(optional)_
+
+If the deployment has auth configured, sign up at `/signup` (email/password or Google) to unlock:
+
+- **Save signatures** — in the signature dialog, use _Save to my account_, then manage them under the **Saved** tab or on the **Profile & settings** page (`/account`): star a default, rename, or delete.
+- **Recent documents** — your annotation drafts auto-save to your account. Reopen one from `/account` or the editor’s start screen; if the PDF isn’t cached on the current device, you’ll be prompted to re-select the file and your edits are reapplied.
+- **Preferences** — set theme, default text font, and default zoom from `/account`; they follow your account.
+
+Reach your account via the avatar menu in the top bar → **Profile & settings**.
+
 ## ⚙️ Environment Variables
 
 Signet runs with **zero configuration** — no env vars are required for the core editor and export.
@@ -131,8 +164,10 @@ Auth is enabled only when **both** `DATABASE_URL` and `BETTER_AUTH_SECRET` are p
 All PDF processing happens **locally in your browser**:
 
 - ✅ No file uploads — documents never leave your device
-- ✅ No server-side storage of your PDFs
+- ✅ No server-side storage of your PDFs — the open file is cached only in your own browser (IndexedDB) so it can be restored after a reload
 - ✅ No account required to edit and export
+
+**With an optional account**, the privacy model is unchanged for your files: only your **annotation drafts** (the placed text/signature data + document name), **saved signatures**, and **preferences** are stored — the **PDF bytes are never uploaded**.
 
 ## 🤝 Contributing
 
