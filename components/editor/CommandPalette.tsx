@@ -22,6 +22,7 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const prevFocus = useRef<HTMLElement | null>(null)
+  const [prevOpen, setPrevOpen] = useState(open)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -29,12 +30,24 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
     return commands.filter((c) => c.label.toLowerCase().includes(q))
   }, [commands, query])
 
-  // Reset + focus on open; restore focus on close.
+  // Reset query/active when the palette transitions to open (adjust during
+  // render, React-recommended) so we never setState synchronously in an effect.
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      setQuery('')
+      setActive(0)
+    }
+  }
+
+  // Clamp the active index to the filtered list during render.
+  const clampedActive = Math.min(active, Math.max(0, filtered.length - 1))
+  if (clampedActive !== active) setActive(clampedActive)
+
+  // Focus management + scroll lock (side effects only).
   useEffect(() => {
     if (open) {
       prevFocus.current = document.activeElement as HTMLElement
-      setQuery('')
-      setActive(0)
       // focus after paint
       requestAnimationFrame(() => inputRef.current?.focus())
       document.body.style.overflow = 'hidden'
@@ -44,10 +57,6 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
       }
     }
   }, [open])
-
-  useEffect(() => {
-    setActive((a) => Math.min(a, Math.max(0, filtered.length - 1)))
-  }, [filtered.length])
 
   // keep active option in view
   useEffect(() => {

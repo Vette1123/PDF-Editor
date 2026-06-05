@@ -1,7 +1,7 @@
 'use client'
 
 import '@/lib/pdf/worker'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Document, Page } from 'react-pdf'
 import { Loader2, FileWarning } from 'lucide-react'
 import type { Action, Annotation, Tool } from '@/lib/editor/types'
@@ -48,9 +48,10 @@ export function DocumentCanvas({
   )
 
   // Stop editing if the edited annotation disappears or selection clears.
-  useEffect(() => {
-    if (editingId && !annotations.some((a) => a.id === editingId)) setEditingId(null)
-  }, [annotations, editingId])
+  // Adjust during render (React-recommended) rather than in an effect.
+  if (editingId && !annotations.some((a) => a.id === editingId)) {
+    setEditingId(null)
+  }
 
   const handlePageClick = (e: React.MouseEvent, pageNumber: number) => {
     if (tool !== 'text') return

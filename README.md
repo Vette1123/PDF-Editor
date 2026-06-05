@@ -1,6 +1,6 @@
-# 📝 PDF Editor
+# 📝 Signet
 
-> A privacy-first PDF editor that runs **entirely in your browser** — no uploads, no servers, no accounts.
+> A privacy-first PDF editor that runs **entirely in your browser** — no uploads, no servers, no account required.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
@@ -8,20 +8,22 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Upload a PDF, add text annotations, draw or type signatures, and export the edited document — all processed locally on your device. Your files never leave your browser.
+Open a PDF, add text, draw or type a signature, and export the edited document — all processed locally on your device. Your files never leave your browser.
 
 ## ✨ Features
 
-- 📤 **Easy PDF Upload** — Drag and drop or click to upload (up to 50MB)
-- ✍️ **Text Annotations** — Add text anywhere with customizable fonts, sizes (10–48px), and colors
-- ✒️ **Three Signature Styles**:
+- ✍️ **Text annotations** — place text anywhere with customizable font, size, and color
+- ✒️ **Signatures, three ways**:
   - **Draw** — sign with mouse or touchscreen
-  - **Type** — choose from 5 elegant handwriting fonts with live preview
+  - **Type** — pick from four elegant handwriting fonts (Caveat, Dancing Script, Great Vibes, Sacramento) with live preview
   - **Upload** — use an existing signature image (PNG, JPG, …)
-- 🖱️ **Drag & Drop Positioning** — move text and signatures anywhere on the page
-- 🔍 **Zoom & Navigate** — zoom 50–200% and browse multi-page documents
-- 💾 **Export PDFs** — download with all annotations permanently embedded
-- 🔒 **100% Private** — everything runs client-side; no file ever touches a server
+- 🖱️ **Drag, touch & resize** — move and resize text and signatures with mouse or touch
+- 🔍 **Zoom & page navigation** — zoom in/out and browse multi-page documents
+- 💾 **Export** — download a PDF with all annotations permanently embedded; the original is never modified
+- ⌨️ **Command palette & shortcuts** — quick actions (⌘K) plus undo/redo
+- 🌗 **Light & dark themes**
+- 🔒 **100% private** — everything runs client-side; no file ever touches a server
+- 👤 **Optional account-saved signatures** _(coming soon)_ — when configured with the optional auth env vars, signed-in users can save and reuse signatures. The app stays fully usable with no account, and PDFs still never leave the browser.
 
 👉 See the [full feature list](FEATURES.md) and the [quick start guide](QUICK_START.md).
 
@@ -53,56 +55,82 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) — the landing page is at `/` and the editor at `/editor`.
+
+### Scripts
+
+| Command            | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `npm run dev`      | Start the development server                 |
+| `npm run build`    | Create an optimized production build         |
+| `npm start`        | Serve the production build                   |
+| `npm test`         | Run the test suite once (Vitest)             |
+| `npm run test:watch` | Run tests in watch mode                    |
+| `npm run lint`     | Lint with ESLint                             |
+| `npm run typecheck`| Type-check with `tsc --noEmit`               |
 
 ## 📖 Usage
 
-### Upload a PDF
+### Open a PDF
 
-Drag and drop a PDF into the upload area, or click to browse.
+Drag and drop a PDF into the upload area on `/editor`, or click to browse.
 
 ### Add Text
 
-1. Click the **Text tool** (T icon) in the toolbar
+1. Choose the **Text tool**
 2. Click anywhere on the PDF to place text
-3. Double-click text to edit; use the properties panel to change size and color
-4. Switch to the **Select tool** to drag and reposition
+3. Edit the text and adjust size and color in the properties panel
+4. Switch to the **Select tool** to drag, reposition, or resize
 
 ### Add a Signature
 
-1. Click the **Signature tool** (pen icon)
+1. Open the **Signature** tool
 2. **Draw**, **Type**, or **Upload** your signature
-3. Click **Save Signature**, then drag it into position with the Select tool
+3. Insert it, then drag and resize it into position with the Select tool
 
 ### Export
 
-Click **Download PDF** — your edited document downloads with all annotations embedded. The original file is never modified.
+Click **Export / Download** — your edited document downloads with all annotations embedded. The original file is never modified.
 
-## 📂 Project Structure
+## ⚙️ Environment Variables
 
-```
-pdf-editor/
-├── app/
-│   ├── layout.tsx               # Root layout with metadata
-│   ├── page.tsx                 # Home page with dynamic PDF editor
-│   ├── globals.css              # Global styles
-│   └── pdf-viewer.css           # PDF viewer styles
-├── components/
-│   ├── PDFEditor.tsx            # Main editor orchestrator
-│   ├── PDFUpload.tsx            # Drag-and-drop file upload
-│   ├── PDFViewer.tsx            # PDF rendering with annotations
-│   ├── SignatureModal.tsx       # Multi-style signature creator
-│   └── TextPropertiesPanel.tsx  # Font size & color controls
-└── next.config.ts               # Next.js configuration
-```
+Signet runs with **zero configuration** — no env vars are required for the core editor and export.
+
+**Required for a production deployment:**
+
+| Variable              | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`| Public canonical site URL used for SEO metadata and the sitemap (e.g. `https://your-domain.com`) |
+
+**Optional — enables account-saved signatures.** Leave these unset and the site works fully with no accounts; auth is gated behind these vars and never required.
+
+| Variable               | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`         | Postgres connection string (e.g. [Neon](https://neon.tech)) |
+| `BETTER_AUTH_SECRET`   | Random secret (`openssl rand -base64 32`)                |
+| `BETTER_AUTH_URL`      | Auth base URL (e.g. `http://localhost:3000`)             |
+| `NEXT_PUBLIC_APP_URL`  | Public app URL used by the auth client                   |
+| `GOOGLE_CLIENT_ID`     | _(optional)_ Google OAuth client ID — adds "Continue with Google" |
+| `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                  |
+
+Auth is enabled only when **both** `DATABASE_URL` and `BETTER_AUTH_SECRET` are present.
+
+## ▲ Deploy to Vercel
+
+1. Push the repo to GitHub and import it into [Vercel](https://vercel.com/new).
+2. Set `NEXT_PUBLIC_SITE_URL` to your production domain.
+3. _(Optional)_ Add the auth env vars above to enable account-saved signatures.
+4. Deploy — Vercel detects Next.js automatically.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
 
 ## 🔒 Privacy
 
-All processing happens **locally in your browser**:
+All PDF processing happens **locally in your browser**:
 
 - ✅ No file uploads — documents never leave your device
-- ✅ No server-side storage
-- ✅ No tracking or accounts
+- ✅ No server-side storage of your PDFs
+- ✅ No account required to edit and export
 
 ## 🤝 Contributing
 
@@ -111,3 +139,7 @@ Contributions are welcome! Feel free to [open an issue](https://github.com/Vette
 ## 📄 License
 
 [MIT](LICENSE) — free to use for personal or commercial projects.
+
+## 🙌 Credits
+
+Built by [Mohamed Gado](https://mohamedgado.com).

@@ -45,17 +45,24 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const sigCanvasRef = useRef<SignatureCanvas>(null)
   const typeCanvasRef = useRef<HTMLCanvasElement>(null)
+  const [prevOpen, setPrevOpen] = useState(open)
   const { toast } = useToast()
 
   const font = HANDWRITING_FONTS[fontIndex]
 
-  // Reset transient state whenever the modal closes.
-  useEffect(() => {
+  // Reset transient state when the modal transitions to closed (adjust during
+  // render, React-recommended) instead of calling setState inside an effect.
+  if (prevOpen !== open) {
+    setPrevOpen(open)
     if (!open) {
       setText('')
       setUploadPreview(null)
-      sigCanvasRef.current?.clear()
     }
+  }
+
+  // Clear the drawing canvas (imperative DOM side effect) on close.
+  useEffect(() => {
+    if (!open) sigCanvasRef.current?.clear()
   }, [open])
 
   // Live preview render for the Type tab.

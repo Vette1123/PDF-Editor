@@ -6,15 +6,15 @@ const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({
   theme: 'dark', toggle: () => {},
 })
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  const stored = localStorage.getItem('theme') as Theme | null
+  if (stored) return stored
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem('theme') as Theme | null
-    const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches
-    const initial = stored ?? (prefersLight ? 'light' : 'dark')
-    setTheme(initial)
-  }, [])
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light')
