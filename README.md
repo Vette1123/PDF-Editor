@@ -41,7 +41,7 @@ Open a PDF, add text, draw or type a signature, and export the edited document �
 
 ## 🚀 Getting Started
 
-**Prerequisites:** Node.js 18.17+
+**Prerequisites:** Node.js 18.17+ and [pnpm](https://pnpm.io) 9+ (`corepack enable pnpm`).
 
 ```bash
 # Clone the repo
@@ -49,25 +49,27 @@ git clone https://github.com/Vette1123/PDF-Editor.git
 cd PDF-Editor
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start the dev server
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) — the landing page is at `/` and the editor at `/editor`.
 
 ### Scripts
 
-| Command            | Description                                  |
-| ------------------ | -------------------------------------------- |
-| `npm run dev`      | Start the development server                 |
-| `npm run build`    | Create an optimized production build         |
-| `npm start`        | Serve the production build                   |
-| `npm test`         | Run the test suite once (Vitest)             |
-| `npm run test:watch` | Run tests in watch mode                    |
-| `npm run lint`     | Lint with ESLint                             |
-| `npm run typecheck`| Type-check with `tsc --noEmit`               |
+| Command             | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `pnpm dev`          | Start the development server                 |
+| `pnpm build`        | Create an optimized production build         |
+| `pnpm start`        | Serve the production build                   |
+| `pnpm test`         | Run the test suite once (Vitest)             |
+| `pnpm test:watch`   | Run tests in watch mode                      |
+| `pnpm lint`         | Lint with ESLint                             |
+| `pnpm typecheck`    | Type-check with `tsc --noEmit`               |
+| `pnpm db:generate`  | Generate Drizzle migrations (optional auth)  |
+| `pnpm db:push`      | Push schema to the database (optional auth)  |
 
 ## 📖 Usage
 

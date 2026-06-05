@@ -97,6 +97,9 @@ export function SignatureModal({ open, onClose, onSave, authEnabled = false }: S
   }, [])
 
   useEffect(() => {
+    // Genuine async data fetch (loads saved signatures from the server when the
+    // Saved tab opens) — a valid effect→external-system sync, not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open && mode === 'saved' && signedIn) void refreshSaved()
   }, [open, mode, signedIn, refreshSaved])
 

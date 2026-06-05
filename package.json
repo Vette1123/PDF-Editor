@@ -1,5 +1,5 @@
 {
-  "name": "pdf-editor",
+  "name": "signet",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,9 +12,6 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
-  },
-  "overrides": {
-    "kysely": "0.28.17"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
