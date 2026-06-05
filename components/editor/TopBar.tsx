@@ -12,6 +12,7 @@ import {
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { AccountMenu } from '@/components/auth/AccountMenu'
 import { ExportMenu } from './ExportMenu'
 
 export interface TopBarProps {
@@ -70,6 +71,7 @@ export function TopBar({
   onUndo,
   onRedo,
   onExport,
+  authEnabled = false,
 }: TopBarProps) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-panel)] px-4">
@@ -137,6 +139,7 @@ export function TopBar({
 
       <ExportMenu onDownload={onExport} />
       <ThemeToggle />
+      {authEnabled && <AccountMenu />}
     </header>
   )
 }

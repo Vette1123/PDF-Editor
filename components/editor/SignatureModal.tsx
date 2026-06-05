@@ -1,21 +1,29 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import SignatureCanvas from 'react-signature-canvas'
-import { Pencil, Type, Upload, Eraser, X } from 'lucide-react'
+import { Pencil, Type, Upload, Eraser, X, Save, Bookmark, Trash2 } from 'lucide-react'
 import { Dialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
+import { useSession } from '@/lib/auth-client'
+import {
+  listSignatures,
+  saveSignature,
+  deleteSignature,
+  type SavedSignature,
+} from '@/lib/signatures/actions'
 
 export interface SignatureModalProps {
   open: boolean
   onClose: () => void
   onSave: (dataUrl: string) => void
-  /** Reserved for Phase 6 (saved signatures). Currently ignored. */
+  /** When true (auth configured), enables the "Saved" tab and account saving. */
   authEnabled?: boolean
 }
 
-type Mode = 'draw' | 'type' | 'upload'
+type Mode = 'draw' | 'type' | 'upload' | 'saved'
 
 interface HandwritingFont {
   label: string
@@ -32,13 +40,13 @@ const HANDWRITING_FONTS: HandwritingFont[] = [
   { label: 'Sacramento', cssName: 'Sacramento', cssVar: 'var(--font-sacramento, cursive)' },
 ]
 
-const TABS: { id: Mode; label: string; icon: typeof Pencil }[] = [
+const INPUT_TABS: { id: Mode; label: string; icon: typeof Pencil }[] = [
   { id: 'draw', label: 'Draw', icon: Pencil },
   { id: 'type', label: 'Type', icon: Type },
   { id: 'upload', label: 'Upload', icon: Upload },
 ]
 
-export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
+export function SignatureModal({ open, onClose, onSave, authEnabled = false }: SignatureModalProps) {
   const [mode, setMode] = useState<Mode>('draw')
   const [text, setText] = useState('')
   const [fontIndex, setFontIndex] = useState(0)
@@ -47,6 +55,17 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
   const typeCanvasRef = useRef<HTMLCanvasElement>(null)
   const [prevOpen, setPrevOpen] = useState(open)
   const { toast } = useToast()
+
+  // The session hook is always called (rules of hooks); we only act on its
+  // result when `authEnabled` so auth-disabled deployments never use it.
+  const { data: sessionData } = useSession()
+  const signedIn = authEnabled && Boolean(sessionData)
+
+  // Account-saving state.
+  const [saveName, setSaveName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState<SavedSignature[]>([])
+  const [loadingSaved, setLoadingSaved] = useState(false)
 
   const font = HANDWRITING_FONTS[fontIndex]
 
@@ -57,6 +76,8 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
     if (!open) {
       setText('')
       setUploadPreview(null)
+      setSaveName('')
+      setMode('draw')
     }
   }
 
@@ -64,6 +85,20 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
   useEffect(() => {
     if (!open) sigCanvasRef.current?.clear()
   }, [open])
+
+  // Load saved signatures when the Saved tab opens (and the user is signed in).
+  const refreshSaved = useCallback(async () => {
+    setLoadingSaved(true)
+    try {
+      setSaved(await listSignatures())
+    } finally {
+      setLoadingSaved(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (open && mode === 'saved' && signedIn) void refreshSaved()
+  }, [open, mode, signedIn, refreshSaved])
 
   // Live preview render for the Type tab.
   useEffect(() => {
@@ -96,7 +131,7 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
   const handleClear = useCallback(() => {
     if (mode === 'draw') sigCanvasRef.current?.clear()
     else if (mode === 'type') setText('')
-    else setUploadPreview(null)
+    else if (mode === 'upload') setUploadPreview(null)
   }, [mode])
 
   const handleUploadFile = useCallback(
@@ -113,43 +148,86 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
     [toast],
   )
 
-  const handleSave = useCallback(() => {
+  /**
+   * Build the current signature as a PNG data URL from the active input tab,
+   * or null if the tab has no content. Toasts an error on empty input.
+   */
+  const currentDataUrl = useCallback((): string | null => {
     if (mode === 'draw') {
       const sig = sigCanvasRef.current
       if (!sig || sig.isEmpty()) {
         toast({ kind: 'error', message: 'Please draw your signature first.' })
-        return
+        return null
       }
-      onSave(sig.toDataURL('image/png'))
-      onClose()
-      return
+      return sig.toDataURL('image/png')
     }
     if (mode === 'type') {
       if (!text.trim()) {
         toast({ kind: 'error', message: 'Please type your name first.' })
-        return
+        return null
       }
       const canvas = typeCanvasRef.current
-      if (!canvas) return
+      if (!canvas) return null
       const ctx = canvas.getContext('2d')
-      if (!ctx) return
+      if (!ctx) return null
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       ctx.font = `64px '${font.cssName}'`
       ctx.fillStyle = '#000'
       ctx.textBaseline = 'middle'
       ctx.fillText(text, 12, canvas.height / 2)
-      onSave(canvas.toDataURL('image/png'))
-      onClose()
-      return
+      return canvas.toDataURL('image/png')
     }
     // upload
     if (!uploadPreview) {
       toast({ kind: 'error', message: 'Please choose an image first.' })
-      return
+      return null
     }
-    onSave(uploadPreview)
+    return uploadPreview
+  }, [mode, text, font, uploadPreview, toast])
+
+  const handleSave = useCallback(() => {
+    const dataUrl = currentDataUrl()
+    if (!dataUrl) return
+    onSave(dataUrl)
     onClose()
-  }, [mode, text, font, uploadPreview, onSave, onClose, toast])
+  }, [currentDataUrl, onSave, onClose])
+
+  const handleSaveToAccount = useCallback(async () => {
+    const dataUrl = currentDataUrl()
+    if (!dataUrl) return
+    setSaving(true)
+    try {
+      const res = await saveSignature({ name: saveName, dataUrl })
+      if ('error' in res) {
+        toast({ kind: 'error', message: res.error })
+        return
+      }
+      toast({ kind: 'success', message: 'Signature saved to your account.' })
+      setSaveName('')
+    } finally {
+      setSaving(false)
+    }
+  }, [currentDataUrl, saveName, toast])
+
+  const handleInsertSaved = useCallback(
+    (dataUrl: string) => {
+      onSave(dataUrl)
+      onClose()
+    },
+    [onSave, onClose],
+  )
+
+  const handleDeleteSaved = useCallback(
+    async (id: string) => {
+      const res = await deleteSignature(id)
+      if ('error' in res) {
+        toast({ kind: 'error', message: res.error })
+        return
+      }
+      setSaved((xs) => xs.filter((s) => s.id !== id))
+    },
+    [toast],
+  )
 
   return (
     <Dialog open={open} onClose={onClose} label="Add signature">
@@ -172,7 +250,7 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
 
         {/* Tabs */}
         <div role="tablist" aria-label="Signature input mode" className="flex border-b border-[var(--border)]">
-          {TABS.map((t) => {
+          {INPUT_TABS.map((t) => {
             const Icon = t.icon
             const active = mode === t.id
             return (
@@ -195,6 +273,24 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
               </button>
             )
           })}
+          {authEnabled && (
+            <button
+              role="tab"
+              aria-selected={mode === 'saved'}
+              aria-controls="sig-panel-saved"
+              id="sig-tab-saved"
+              onClick={() => setMode('saved')}
+              className={[
+                'flex flex-1 items-center justify-center gap-2 px-6 py-3 text-sm font-medium transition-colors',
+                mode === 'saved'
+                  ? 'border-b-2 border-[var(--accent)] text-[var(--text)]'
+                  : 'border-b-2 border-transparent text-[var(--text-muted)] hover:text-[var(--text)]',
+              ].join(' ')}
+            >
+              <Bookmark size={16} />
+              Saved
+            </button>
+          )}
         </div>
 
         {/* Panels */}
@@ -321,23 +417,101 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
               )}
             </div>
           )}
+
+          {mode === 'saved' && authEnabled && (
+            <div
+              role="tabpanel"
+              id="sig-panel-saved"
+              aria-labelledby="sig-tab-saved"
+              className="flex flex-col gap-3"
+            >
+              {!signedIn ? (
+                <div className="grid place-items-center gap-3 rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-canvas)] px-6 py-12 text-center">
+                  <Bookmark size={28} className="text-[var(--text-muted)]" />
+                  <p className="text-sm text-[var(--text)]">
+                    Sign in to save and reuse signatures
+                  </p>
+                  <Link
+                    href="/login"
+                    className="inline-flex h-9 items-center rounded-lg bg-[var(--accent)] px-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  >
+                    Sign in
+                  </Link>
+                </div>
+              ) : loadingSaved ? (
+                <p className="py-12 text-center text-sm text-[var(--text-muted)]">Loading…</p>
+              ) : saved.length === 0 ? (
+                <p className="py-12 text-center text-sm text-[var(--text-muted)]">
+                  No saved signatures yet. Draw, type, or upload one, then use
+                  &ldquo;Save to my account&rdquo;.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {saved.map((s) => (
+                    <div
+                      key={s.id}
+                      className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-white"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleInsertSaved(s.dataUrl)}
+                        aria-label={`Insert signature ${s.name}`}
+                        className="grid h-24 w-full place-items-center p-3 transition-colors hover:bg-[var(--bg-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.dataUrl} alt={s.name} className="max-h-16 object-contain" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteSaved(s.id)}
+                        aria-label={`Delete signature ${s.name}`}
+                        className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-lg bg-[var(--bg-panel)]/90 text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[var(--danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] group-hover:opacity-100"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-4">
-          <Button variant="ghost" size="sm" onClick={handleClear}>
-            <Eraser size={16} />
-            Clear
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleSave}>
-              Add signature
+        {/* Save-to-account control (only when signed in, and not on the Saved tab) */}
+        {signedIn && mode !== 'saved' && (
+          <div className="flex items-center gap-2 border-t border-[var(--border)] px-6 py-3">
+            <input
+              type="text"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="Name this signature (optional)"
+              aria-label="Signature name"
+              className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--bg-canvas)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-ring)]"
+            />
+            <Button variant="ghost" size="sm" onClick={handleSaveToAccount} disabled={saving}>
+              <Save size={16} />
+              {saving ? 'Saving…' : 'Save to my account'}
             </Button>
           </div>
-        </div>
+        )}
+
+        {/* Footer */}
+        {mode !== 'saved' && (
+          <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-4">
+            <Button variant="ghost" size="sm" onClick={handleClear}>
+              <Eraser size={16} />
+              Clear
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleSave}>
+                Add signature
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Dialog>
   )

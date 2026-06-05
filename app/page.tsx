@@ -8,6 +8,7 @@ import { FAQ } from '@/components/landing/FAQ'
 import { Footer } from '@/components/landing/Footer'
 import { FAQ_ITEMS } from '@/components/landing/faq-data'
 import { softwareAppLd, faqLd } from '@/lib/seo/structured-data'
+import { authConfigured } from '@/lib/env'
 
 export const metadata: Metadata = { alternates: { canonical: '/' } }
 
@@ -18,7 +19,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppLd()) }} />
       <script type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd(FAQ_ITEMS)) }} />
-      <Nav />
+      <Nav authEnabled={authConfigured} />
       <main>
         <Hero />
         <FeatureGrid />
