@@ -9,11 +9,18 @@ import {
   Undo2,
   Redo2,
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { AccountMenu } from '@/components/auth/AccountMenu'
 import { ExportMenu } from './ExportMenu'
+
+// better-auth's useSession is browser-only; load AccountMenu client-side to keep
+// it out of any server prerender path.
+const AccountMenu = dynamic(
+  () => import('@/components/auth/AccountMenu').then((m) => m.AccountMenu),
+  { ssr: false },
+)
 
 export interface TopBarProps {
   filename: string
