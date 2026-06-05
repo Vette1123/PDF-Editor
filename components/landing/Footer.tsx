@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { GithubIcon } from '@/components/ui/GithubIcon'
 import { Logo } from '@/components/ui/Logo'
 import { site } from '@/lib/seo/site'
+import { TOOL_PAGES } from '@/lib/seo/tool-pages'
 
 export function Footer() {
   const year = new Date().getFullYear()
@@ -23,6 +24,17 @@ export function Footer() {
           <p className="text-xs text-[var(--text-muted)]">
             &copy; {year} {site.name}. Free &amp; open source.
           </p>
+          <nav aria-label="PDF tools" className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            {TOOL_PAGES.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/${p.slug}`}
+                className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              >
+                {p.metaTitle.replace(/ —.*$/, '')}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <div className="flex flex-col items-start gap-3 md:items-end">
